@@ -45,6 +45,7 @@ def high_resolution_png():
     return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',6000,4000,8,2,0,0,0))+chunk(b'IDAT',content)+chunk(b'IEND',b'')
 
 media = event = newsletter = initiative = campaign = large = None
+paging_records = []
 try:
     boundary = 'gcf-' + uuid.uuid4().hex
     image = Path('apps/web/public/assets/gcf-logo.jpg').read_bytes()
@@ -86,8 +87,31 @@ try:
     newsletter = call('/newsletters','POST',generated)
     assert call('/newsletters/'+newsletter['id'])['updates']==updates
     assert any(e['id']==event['id'] for e in call('/events')['items'])
+    # Counts follow the filter on every collection, including out-of-range pages.
+    for path in ['/events', '/initiatives', '/campaigns', '/newsletters', '/updates', '/media']:
+        result = call(path)
+        assert isinstance(result['total'], int) and result['total'] >= 1, (path, result)
+        assert result['page_size'] == (48 if path == '/media' else 24)
+        absent = call(path + '?query=nonexistent-' + uuid.uuid4().hex)
+        assert absent['total'] == 0 and absent['items'] == [] and not absent['more']
+        distant = call(path + '?page=99999')
+        assert distant['total'] == result['total'] and distant['items'] == []
+        assert all('result_count' not in item for item in result['items'])
+    prefix = 'Pagination-' + uuid.uuid4().hex
+    for index in range(27):
+        record = call('/events', 'POST', {**event_data, 'title':f'{prefix}-{index:02}', 'media_ids':[]})
+        paging_records.append(record['id'])
+    first = call('/events?query=' + prefix)
+    second = call('/events?query=' + prefix + '&page=2')
+    assert first['total'] == second['total'] == 27
+    assert len(first['items']) == 24 and first['more']
+    assert len(second['items']) == 3 and not second['more']
+    assert {r['id'] for r in first['items']}.isdisjoint(r['id'] for r in second['items'])
+    assert call('/updates?kind=events&query=' + prefix)['total'] == 27
+    print('PASS: filtered totals, page sizes, disjoint numbered pages, and out-of-range results')
     print('PASS: authentication, CSRF, private original/thumbnail uploads, normalized event round-trip, reuse protection, validation, newsletter generation and persistence')
 finally:
+    for record_id in paging_records: call('/events/' + record_id, 'DELETE')
     if newsletter: call('/newsletters/'+newsletter['id'],'DELETE')
     if campaign: call('/campaigns/'+campaign['id'],'DELETE')
     if initiative: call('/initiatives/'+initiative['id'],'DELETE')

@@ -8,12 +8,15 @@ defmodule Gcf.Admin.Programs do
         _ -> 1
       end
 
-    with {:ok, rows} <-
-           DB.execute(
-             "SELECT * FROM #{kind} WHERE title LIKE ? ORDER BY updated_at DESC,id LIMIT 25 OFFSET ?",
-             ["%#{String.slice(to_string(p["query"] || ""), 0, 200)}%", (page - 1) * 24]
+    with {:ok, result} <-
+           Gcf.Admin.Page.fetch(
+             "SELECT * FROM #{kind} WHERE title LIKE ?",
+             ["%#{String.slice(to_string(p["query"] || ""), 0, 200)}%"],
+             "updated_at DESC,id",
+             page,
+             24
            ) do
-      {:ok, %{items: hydrate(kind, Enum.take(rows, 24)), more: length(rows) > 24, page: page}}
+      {:ok, %{result | items: hydrate(kind, result.items)}}
     end
   end
 

@@ -3,3 +3,37 @@
 @container editor (max-width:440px){.page-heading{flex-direction:column;gap:15px}.page-heading p{max-width:100%}.field-grid{grid-template-columns:1fr 1fr}.field-grid label:last-child{max-width:100px}.media-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel-title small{display:none}.admin-main{padding:24px 20px 0}.event-order li{flex-wrap:wrap}.event-order>li>span{flex-basis:100%}.relationship-list li{flex-wrap:wrap}.relationship-list a{flex-basis:50%}}
 @media(max-width:767px){.workspace-header{padding:0 14px;gap:6px}.workspace-header nav{font-size:12px;gap:7px}.workspace-header nav>span{display:none}.workspace-header nav>svg{display:none}.workspace-status{font-size:10px}.mobile-workspace-tabs{display:flex;min-height:43px;border-bottom:1px solid #e4e4e7;padding:0 18px;gap:22px}.mobile-workspace-tabs button{font-size:12px;padding:0 8px;border-bottom:2px solid transparent;color:#909098}.mobile-workspace-tabs button[aria-pressed=true]{color:#244a36;border-color:#244a36}.workspace-panels{display:block!important}.workspace-resizer{display:none!important}.workspace-panels>.configuration-panel,.workspace-panels>.output-panel{width:100%!important;max-width:none!important;flex:1!important;height:100%!important}.workspace-panels[data-mobile-pane=edit]>.output-panel,.workspace-panels[data-mobile-pane=preview]>.configuration-panel{display:none!important}.panel-title{padding:0 20px}.panel-title small{display:none}.preview-scroll{padding:20px}.output-document{padding:28px 24px}.admin-main{padding:24px 20px 0}.admin-app label{font-size:12px}.admin-app input:not([type=checkbox]):not([type=file]),.admin-app textarea,.admin-app select{font-size:16px;min-height:42px}.editor [data-slot=button],.form-actions [data-slot=button]{min-height:40px}.record-link{min-height:80px}.gcf-menu-button{min-height:42px!important}.output-gallery img{height:130px}}
 @media(prefers-reduced-motion:reduce){.admin-app *{transition:none!important;animation:none!important}}
+
+/* Let controls and the actual output carry the workspace. */
+.panel-title{height:70px;min-height:70px;padding:0 22px}
+.collection-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.collection-toolbar .search{flex:1;margin:0;min-width:0}
+.admin-app .search{position:relative;display:block}
+.search>svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#8b8b95;pointer-events:none}
+.admin-app .search input{max-width:none;padding-left:35px}
+.collection-toolbar [data-slot=button],.icon-upload{width:38px;height:38px;min-height:38px;padding:0;flex:none}
+.icon-upload{align-items:center;justify-content:center}
+.icon-upload svg{width:17px;height:17px}
+.publication-status{display:grid;gap:3px;font-size:10px;line-height:13px;min-width:74px}
+.publication-state{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#a1a1aa;font-weight:400}
+.publication-state i{display:block;width:7px;height:7px;border-radius:50%;flex:none;opacity:.28}
+.publication-state.state-hidden i{background:#dc4949}
+.publication-state.state-draft i{background:#397beb}
+.publication-state.state-published i{background:#2ca369}
+.publication-state[data-active=true]{color:#3b4c66;font-weight:600}
+.publication-state[data-active=true] i{opacity:1;box-shadow:0 0 0 3px #397beb15}
+.empty{display:flex;flex-direction:column;align-items:center;gap:12px;margin:70px auto;font-size:12px}
+.empty>svg{width:28px;height:28px;stroke-width:1.2;color:#babac2}
+.collection-loading{display:flex;justify-content:center;padding:75px;color:#a1a1aa}
+.collection-loading svg{width:20px;height:20px}
+.preview-empty>svg{color:#c3c3ca}
+.pager{gap:3px;flex-wrap:wrap}
+.pager .page-count{margin-right:auto;font-variant-numeric:tabular-nums;font-size:11px}
+.page-step{display:inline-flex;align-items:center;gap:3px}
+.pager [data-slot=button]{width:32px;height:32px;min-height:32px;padding:0;font-size:11px}
+.page-gap{width:20px;text-align:center}
+.pager [aria-current=page]{background:#eaf0ec;color:#284f38;font-weight:650}
+.record-trailing{flex:none}
+@media(max-width:767px){.panel-title{height:70px;min-height:70px}.collection-toolbar [data-slot=button],.icon-upload{width:42px;height:42px;min-height:42px}.pager [data-slot=button]{width:36px;height:40px;min-height:40px}.pager{gap:0}.page-step{gap:0}.page-gap{width:12px}.admin-app .search input{padding-left:35px}.mobile-workspace-tabs{min-height:44px}.empty{margin:60px auto}}
+
+@media(max-width:767px){.pager .page-count{flex-basis:100%;margin-bottom:8px}.pager [data-slot=button]{width:32px}.pager{justify-content:center}}

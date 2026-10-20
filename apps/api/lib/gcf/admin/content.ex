@@ -8,13 +8,15 @@ defmodule Gcf.Admin.Content do
     page = max(1, min(integer(p["page"], 1), 100_000))
     query = String.slice(to_string(p["query"] || ""), 0, 200)
 
-    with {:ok, rows} <-
-           DB.execute(
-             "SELECT * FROM #{collection} WHERE title LIKE ? ORDER BY updated_at DESC, id LIMIT 25 OFFSET ?",
-             ["%#{query}%", (page - 1) * 24]
+    with {:ok, result} <-
+           Gcf.Admin.Page.fetch(
+             "SELECT * FROM #{collection} WHERE title LIKE ?",
+             ["%#{query}%"],
+             "updated_at DESC, id",
+             page,
+             24
            ) do
-      {:ok,
-       %{items: hydrate!(collection, Enum.take(rows, 24)), more: length(rows) > 24, page: page}}
+      {:ok, %{result | items: hydrate!(collection, result.items)}}
     end
   end
 
@@ -53,27 +55,24 @@ defmodule Gcf.Admin.Content do
     query = "%" <> String.slice(to_string(p["query"] || ""), 0, 200) <> "%"
 
     sql =
-      "SELECT * FROM (SELECT id,title,summary,updated_at,'events' AS kind FROM events UNION ALL SELECT id,title,summary,updated_at,'initiatives' AS kind FROM initiatives UNION ALL SELECT id,title,summary,updated_at,'campaigns' AS kind FROM campaigns) WHERE title LIKE ? AND kind LIKE ? ORDER BY updated_at DESC,id LIMIT 25 OFFSET ?"
+      "SELECT * FROM (SELECT id,title,summary,updated_at,'events' AS kind FROM events UNION ALL SELECT id,title,summary,updated_at,'initiatives' AS kind FROM initiatives UNION ALL SELECT id,title,summary,updated_at,'campaigns' AS kind FROM campaigns) WHERE title LIKE ? AND kind LIKE ?"
 
-    with {:ok, rows} <- DB.execute(sql, [query, kind, (page - 1) * 24]),
-         do: {:ok, %{items: Enum.take(rows, 24), more: length(rows) > 24, page: page}}
+    Gcf.Admin.Page.fetch(sql, [query, kind], "updated_at DESC,id", page, 24)
   end
 
   def run("media_list", p) do
     page = max(1, min(integer(p["page"], 1), 100_000))
     query = "%" <> String.slice(to_string(p["query"] || ""), 0, 200) <> "%"
 
-    with {:ok, rows} <-
-           DB.execute(
-             "SELECT *, (SELECT COUNT(*) FROM event_media WHERE media_id=media.id) AS uses FROM media WHERE filename LIKE ? OR caption LIKE ? OR alt LIKE ? ORDER BY created_at DESC,id LIMIT 49 OFFSET ?",
-             [query, query, query, (page - 1) * 48]
+    with {:ok, result} <-
+           Gcf.Admin.Page.fetch(
+             "SELECT *, (SELECT COUNT(*) FROM event_media WHERE media_id=media.id) AS uses FROM media WHERE filename LIKE ? OR caption LIKE ? OR alt LIKE ?",
+             [query, query, query],
+             "created_at DESC,id",
+             page,
+             48
            ) do
-      {:ok,
-       %{
-         items: Enum.take(rows, 48) |> Enum.map(&media_view/1),
-         more: length(rows) > 48,
-         page: page
-       }}
+      {:ok, %{result | items: Enum.map(result.items, &media_view/1)}}
     end
   end
 
