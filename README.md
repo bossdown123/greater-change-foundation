@@ -58,7 +58,8 @@ secrets; `DEPLOY_HOST` is a repository variable. Registry credentials exist only
 for the deployment and are removed afterward.
 
 Production configuration is `deploy/compose.yaml`. Source/configuration resides
-at `/opt/greater-change-foundation`, persistent state at `/var/lib/gcf`, and
+at `/opt/greater-change-foundation`, persistent state at `/var/lib/gcf` (a symlink
+to the existing mounted Hetzner volume), and
 pre-deployment backups at `/var/backups/gcf`. Caddy obtains HTTPS certificates
 for the temporary hostname. Only web ports and SSH need to be public; the app's
 port 4000 is loopback-only and the database has no host port.
