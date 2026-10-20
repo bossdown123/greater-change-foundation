@@ -104,11 +104,15 @@ defmodule Gcf.Admin.Router do
   end
 
   post "/drafts/:collection"
-       when collection in ["events", "initiatives", "campaigns", "newsletters"] do
+       when collection in ["events", "initiatives", "campaigns", "newsletters", "articles"] do
     action(conn, "create_draft", %{
       "collection" => collection,
       "draft_id" => conn.body_params["draft_id"]
     })
+  end
+
+  get "/work" do
+    action(conn, "list_work", conn.query_params)
   end
 
   get "/updates" do
@@ -155,26 +159,28 @@ defmodule Gcf.Admin.Router do
     action(conn, "generate", conn.body_params)
   end
 
-  get "/:collection" when collection in ["events", "newsletters", "initiatives", "campaigns"] do
+  get "/:collection"
+      when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
     action(conn, "list", Map.put(conn.query_params, "collection", collection))
   end
 
-  post "/:collection" when collection in ["events", "newsletters", "initiatives", "campaigns"] do
+  post "/:collection"
+       when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
     action(conn, "save", %{"collection" => collection, "data" => conn.body_params})
   end
 
   get "/:collection/:id"
-      when collection in ["events", "newsletters", "initiatives", "campaigns"] do
+      when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
     action(conn, "get", %{"collection" => collection, "id" => id})
   end
 
   put "/:collection/:id"
-      when collection in ["events", "newsletters", "initiatives", "campaigns"] do
+      when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
     action(conn, "save", %{"collection" => collection, "id" => id, "data" => conn.body_params})
   end
 
   delete "/:collection/:id"
-         when collection in ["events", "newsletters", "initiatives", "campaigns"] do
+         when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
     action(conn, "delete", %{"collection" => collection, "id" => id})
   end
 

@@ -1,5 +1,5 @@
 defmodule Gcf.Admin.Attribution do
-  @tables ~w(events initiatives campaigns newsletters media)
+  @tables ~w(events initiatives campaigns newsletters articles media)
   def attach({:ok, %{items: rows} = result}, table) when table in @tables do
     {:ok, %{result | items: rows(rows, table)}}
   end

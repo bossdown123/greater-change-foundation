@@ -90,12 +90,15 @@ defmodule Gcf.Admin.Mutation do
         c ->
           context_statement =
             cond do
-              c.create_only and c.resource_type in ~w(events initiatives campaigns newsletters) ->
-                {"INSERT INTO audit_context(singleton,action_id) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM #{c.resource_type} WHERE id=?) THEN 1 ELSE 0 END,?",
+              c.create_only and
+                  c.resource_type in ~w(events initiatives campaigns newsletters articles) ->
+                table = if c.resource_type in ~w(newsletters articles), do: "publications", else: c.resource_type
+
+                {"INSERT INTO audit_context(singleton,action_id) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM #{table} WHERE id=?) THEN 1 ELSE 0 END,?",
                  [c.resource_id, c.id]}
 
               c.expected && c.resource_id &&
-                  c.resource_type in ~w(events initiatives campaigns newsletters media) ->
+                  c.resource_type in ~w(events initiatives campaigns newsletters articles media) ->
                 {"INSERT INTO audit_context(singleton,action_id) SELECT CASE WHEN EXISTS(SELECT 1 FROM #{c.resource_type} WHERE id=? AND updated_at=?) THEN 1 ELSE 0 END,?",
                  [c.resource_id, c.expected, c.id]}
 

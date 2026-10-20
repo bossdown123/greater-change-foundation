@@ -81,7 +81,7 @@ defmodule Gcf.Admin.Resource do
   defp prepare_target(operation, p) do
     type = p["collection"] || if(String.starts_with?(operation, "media_"), do: "media", else: nil)
 
-    if type in ~w(events initiatives campaigns newsletters media) and p["id"] do
+    if type in ~w(events initiatives campaigns newsletters articles media) and p["id"] do
       field = if type == "media", do: "filename", else: "title"
 
       case Gcf.Database.execute("SELECT #{field} AS title FROM #{type} WHERE id=?", [p["id"]]) do

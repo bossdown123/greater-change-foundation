@@ -37,6 +37,8 @@ defmodule Gcf.Admin.RichText do
     end
   end
 
+  def statements("articles", id, data), do: statements("newsletters", id, data)
+
   def statements(kind, id, data) when kind in ~w(events initiatives campaigns newsletters) do
     {table, key} = table(kind)
     fields = if kind == "newsletters", do: ~w(introduction body), else: ["summary"]

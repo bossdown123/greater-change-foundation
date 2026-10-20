@@ -1,6 +1,6 @@
 defmodule Gcf.Admin.Content do
   alias Gcf.Database, as: DB
-  @collections ~w(events newsletters)
+  @collections ~w(events newsletters articles)
   def run(operation, %{"collection" => kind} = params) when kind in ["initiatives", "campaigns"],
     do: Gcf.Admin.Programs.run(operation, params)
 
@@ -49,8 +49,27 @@ defmodule Gcf.Admin.Content do
   end
 
   def run("delete", %{"collection" => collection, "id" => id}) when collection in @collections do
-    with {:ok, _} <- DB.execute("DELETE FROM #{collection} WHERE id = ?", [id]),
+    with {:ok, _} <- get(collection, id),
+         {:ok, _} <-
+           DB.execute(
+             "DELETE FROM #{if collection in ~w(newsletters articles), do: "publications", else: collection} WHERE id = ?",
+             [id]
+           ),
          do: {:ok, %{deleted: true}}
+  end
+
+  def run("list_work", p) do
+    page = max(1, min(integer(p["page"], 1), 100_000))
+    kind = if p["kind"] in ~w(events initiatives campaigns), do: p["kind"], else: "%"
+    query = "%" <> String.slice(to_string(p["query"] || ""), 0, 200) <> "%"
+
+    Gcf.Admin.Page.fetch(
+      "SELECT * FROM work_records WHERE title LIKE ? AND kind LIKE ?",
+      [query, kind],
+      "updated_at DESC,kind,id",
+      page,
+      24
+    )
   end
 
   def run("list_updates", p) do
@@ -271,6 +290,8 @@ defmodule Gcf.Admin.Content do
     end
   end
 
+  def validate("articles", d), do: validate("newsletters", d)
+
   def validate("newsletters", d) do
     data = Map.take(d, ~w(title subject introduction body)) |> Map.put("updates", updates(d))
 
@@ -304,7 +325,7 @@ defmodule Gcf.Admin.Content do
     end)
   end
 
-  defp get(table, id) when table in ["events", "newsletters", "media"] do
+  defp get(table, id) when table in ["events", "newsletters", "articles", "media"] do
     case DB.execute("SELECT * FROM #{table} WHERE id=?", [id]) do
       {:ok, [row]} -> {:ok, row}
       {:ok, []} -> {:error, :not_found}
@@ -395,10 +416,19 @@ defmodule Gcf.Admin.Content do
     )
   end
 
-  defp save_statements("newsletters", id, data, now) do
+  defp save_statements(kind, id, data, now) when kind in ~w(newsletters articles) do
     [
-      {"INSERT INTO newsletters(id,title,subject,introduction,body,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,subject=excluded.subject,introduction=excluded.introduction,body=excluded.body,updated_at=excluded.updated_at",
-       [id, data["title"], data["subject"], data["introduction"], data["body"], now, now]},
+      {"INSERT INTO publications(id,title,subject,introduction,body,created_at,updated_at,format) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,subject=excluded.subject,introduction=excluded.introduction,body=excluded.body,updated_at=excluded.updated_at",
+       [
+         id,
+         data["title"],
+         data["subject"],
+         data["introduction"],
+         data["body"],
+         now,
+         now,
+         if(kind == "articles", do: "article", else: "newsletter")
+       ]},
       {"DELETE FROM newsletter_items WHERE newsletter_id=?", [id]}
     ] ++
       (Enum.with_index(data["updates"], fn update, position ->
@@ -468,6 +498,8 @@ defmodule Gcf.Admin.Content do
       })
     end)
   end
+
+  defp hydrate!("articles", rows), do: hydrate!("newsletters", rows)
 
   defp hydrate!("newsletters", rows) do
     ids = Enum.map(rows, & &1["id"])

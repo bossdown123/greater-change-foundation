@@ -25,9 +25,9 @@ HTMLElement.prototype.getBoundingClientRect=function(){
 const {createRoot}=await import('react-dom/client')
 const h=React.createElement,container=document.getElementById('test'),root=createRoot(container)
 try{
- writeFileSync(dir+'/entry.ts','export {RealtimeContext,CollaborativeFields} from "../src/realtime"; export {useRemoteDraft} from "../src/remote-draft"; export {default as RichEditor} from "../src/rich-editor"; export {registerRichSelection} from "../src/cursor-position";')
+ writeFileSync(dir+'/entry.ts','export {PublicationSources} from "../src/admin"; export {RealtimeContext,CollaborativeFields} from "../src/realtime"; export {useRemoteDraft} from "../src/remote-draft"; export {default as RichEditor} from "../src/rich-editor"; export {registerRichSelection} from "../src/cursor-position";')
  await build({entryPoints:[dir+'/entry.ts'],outfile:dir+'/bundle.mjs',bundle:true,platform:'node',format:'esm',packages:'external',loader:{'.css':'empty'},jsx:'automatic',logLevel:'silent',plugins:[{name:'ignore-css',setup(build){build.onResolve({filter:/\.css$/},args=>({path:args.path,namespace:'empty-css'}));build.onLoad({filter:/.*/,namespace:'empty-css'},()=>({contents:'',loader:'js'}))}}]})
- const {RealtimeContext,CollaborativeFields,useRemoteDraft,RichEditor,registerRichSelection}=await import(pathToFileURL(dir+'/bundle.mjs'))
+ const {RealtimeContext,CollaborativeFields,useRemoteDraft,RichEditor,registerRichSelection,PublicationSources}=await import(pathToFileURL(dir+'/bundle.mjs'))
  const people=[{id:'a',connection_id:'tab-a',name:'Member A',color:'#2563eb',section:'events',resource_id:'doc',field:'Title:0',interacted_at:1,editing:true},{id:'b',connection_id:'tab-b',name:'Member B',color:'#d97706',section:'events',resource_id:'doc',field:'Title:0',interacted_at:2,editing:true}]
  const located=[]
  const showFields=members=>root.render(h(RealtimeContext.Provider,{value:{people:members,userId:'a',connected:true,locate:value=>located.push(value),sendDraft:()=>{}}},h('div',{className:'workspace'},h('form',{className:'editor'},h('label',null,'Title',h('input',{'aria-label':'Title',style:{borderBottomRightRadius:'6px'}}))),h('div',{className:'configuration-panel',id:'browsing-area'}),h(CollaborativeFields,{section:'events',resourceId:'doc'}))))
@@ -128,6 +128,8 @@ try{
  assert.match(document.querySelector('.figure-reference-caption').textContent,/Saved caption/)
  assert.equal(document.querySelector('.figure-reference-width input').value,'40')
  assert.equal(document.querySelector('.rich-surface img'),null,'full images do not occupy the writing surface')
+ await act(async()=>root.render(h(PublicationSources,{records:[{kind:'events',data:{id:'source',title:'Community work',summary:'One shared story',dates:['2026-10-20'],locations:['Community centre'],participants:12,funds_raised:30,currency:'USD',custom_fields:[],media_ids:[],initiative_ids:[],campaign_ids:[]}}]})))
+ assert.match(container.textContent,/Community work/);assert.match(container.textContent,/Community centre/);assert.match(container.textContent,/12/)
  await act(async()=>root.unmount())
  console.log('PASS: actual field UI mounts both account names, recent-editor color and persistent activity')
 }finally{try{await act(async()=>root.unmount())}catch{}dom.window.close();rmSync(dir,{recursive:true,force:true})}
