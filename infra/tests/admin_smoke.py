@@ -6,6 +6,8 @@ from pathlib import Path
 import urllib.error
 import urllib.request
 import uuid
+import struct
+import zlib
 
 base = os.environ.get('GCF_TEST_URL', 'http://127.0.0.1:4000')
 password = Path(os.environ.get('GCF_ADMIN_PASSWORD_FILE', '.admin-password')).read_text().strip()
@@ -34,7 +36,15 @@ csrf = call('/session')['csrf']
 call('/session', 'POST', {'password': password}, expected=403, headers={'X-CSRF-Token': 'invalid'})
 csrf = call('/session', 'POST', {'password': password})['csrf']
 assert call('/session')['authenticated']
-media = event = newsletter = initiative = campaign = None
+def high_resolution_png():
+    def chunk(kind, data):
+        return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
+    compressor=zlib.compressobj()
+    row=b'\x00'+b'\x80\xb0\x90'*6000
+    content=b''.join(compressor.compress(row) for _ in range(4000))+compressor.flush()
+    return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',6000,4000,8,2,0,0,0))+chunk(b'IDAT',content)+chunk(b'IEND',b'')
+
+media = event = newsletter = initiative = campaign = large = None
 try:
     boundary = 'gcf-' + uuid.uuid4().hex
     image = Path('apps/web/public/assets/gcf-logo.jpg').read_bytes()
@@ -42,6 +52,12 @@ try:
     media = call('/media', 'POST', body, headers={'Content-Type': 'multipart/form-data; boundary=' + boundary})
     assert call('/media/' + media['id'] + '/file') == image
     assert call('/media/' + media['id'] + '/thumbnail')[:4] == b'RIFF'
+    high_res=high_resolution_png()
+    large_body=(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="high-resolution.png"\r\nContent-Type: image/png\r\n\r\n'.encode()+high_res+f'\r\n--{boundary}--\r\n'.encode())
+    large=call('/media','POST',large_body,headers={'Content-Type':'multipart/form-data; boundary='+boundary})
+    assert call('/media/'+large['id']+'/thumbnail')[:4]==b'RIFF'
+    call('/media/'+large['id'],'DELETE')
+    large=None
     media = call('/media/' + media['id'], 'PATCH', {'alt':'GCF logo for integration test','caption':'Temporary test image'})
     event_data = {'title':'Integration test — remove me','summary':'A community event.', 'dates':['2026-11-01','2026-11-02'],'locations':['Community centre','Town hall'],'participants':0,'funds_raised':123.45,'currency':'JMD','media_ids':[media['id']], 'custom_fields':[{'label':'Volunteers','type':'number','value':12},{'label':'Partner','type':'text','value':'Local community'},{'label':'Review date','type':'date','value':'2026-11-03'},{'label':'Project URL','type':'link','value':'https://example.org'}]}
     event = call('/events','POST',event_data)
@@ -76,6 +92,7 @@ finally:
     if campaign: call('/campaigns/'+campaign['id'],'DELETE')
     if initiative: call('/initiatives/'+initiative['id'],'DELETE')
     if event: call('/events/'+event['id'],'DELETE')
+    if large: call('/media/'+large['id'],'DELETE')
     if media: call('/media/'+media['id'],'DELETE')
 call('/session','DELETE')
 call('/events',expected=401)

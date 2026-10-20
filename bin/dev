@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+python3 deploy/local-secrets.py
+# Local services are the default. Refuse a remote database override by accident.
+python3 - <<'PY'
+from pathlib import Path
+values=dict(line.split('=',1) for line in Path('.env').read_text().splitlines() if '=' in line and not line.startswith('#'))
+if values.get('TURSO_DATABASE_URL','http://database:8080')!='http://database:8080':
+    raise SystemExit('Local harness requires TURSO_DATABASE_URL=http://database:8080 in .env. Remote databases are not used.')
+PY
+docker compose -f compose.yaml -f compose.dev.yaml up -d --build --wait
+printf '\nLocal website: http://127.0.0.1:4173/\nLocal admin: http://127.0.0.1:4173/admin\nInitial password: .admin-password (private)\nDatabase and image bucket: local Docker volumes\n'

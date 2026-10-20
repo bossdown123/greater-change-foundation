@@ -1,0 +1,21 @@
+# Self-contained local harness: local Turso, local S3 bucket, API and Vite.
+services:
+  web:
+    image: node:22-bookworm-slim
+    working_dir: /web
+    command: ["sh", "-c", "npm ci && npm run dev -- --port 4173 --strictPort"]
+    environment:
+      GCF_API_PROXY: http://app:4000
+    volumes:
+      - ./apps/web:/web
+    ports: ["127.0.0.1:4173:4173"]
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [internal, public]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4173').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+    restart: unless-stopped

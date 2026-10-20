@@ -123,13 +123,24 @@ See [the relational model](docs/DATA_MODEL.md) for normalization and migration
 requirements. `AGENTS.md` requires at least 3NF, appropriate higher normalization,
 and substantial migrations when needed to fix the data model.
 
-### Local setup
+### Local harness
 
-Run `python3 deploy/local-secrets.py`, then `docker compose up -d --build --wait`.
-The initial local password is saved in the ignored `.admin-password` file. Open
-`http://127.0.0.1:4000/admin`. Never commit the generated `.env` or password.
-For Vite, connect it to the Compose networks and proxy `/api` to the app; the
-current development proxy uses `gcf-api-dev:4000`.
+Run `./bin/dev`, then open `http://127.0.0.1:4173/admin`. This starts **local**
+Turso, a **local** Garage image bucket, the Elixir API and a Vite frontend with
+hot reload. It does not connect to production or require a remote bucket.
+Docker downloads and npm installation require internet on first setup; normal
+local data and upload operations are independent of the production server.
+
+The initial password is saved in the ignored `.admin-password` file. Never
+commit `.env` or this password. Database and image files persist in the local
+`gcf_database`, `gcf_media` and `gcf_sqitch` Docker volumes. Local media is separate
+from production. `./bin/dev-stop` stops services without deleting data. Run
+`./bin/dev` again after backend changes to rebuild the API and apply migrations.
+The full built app is also available at `http://127.0.0.1:4000`.
+
+Do not use `docker compose down -v` unless you intentionally want to erase local
+data. The harness refuses a remote database URL override. The API's S3 endpoint
+is explicitly set to the local `storage` service in Compose.
 
 The private `gcf-media` bucket uses Garage, an S3-compatible service on the
 existing server. Production assigns a 5 GB quota. Only the app connects to it;
