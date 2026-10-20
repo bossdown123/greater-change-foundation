@@ -32,4 +32,5 @@ design or interaction decisions. Its requirements include:
 - Use relational tables and foreign keys for repeatable facts and relationships. Do not put event dates, locations, gallery assignments, custom-field values, or newsletter event selections in JSON blobs or comma-separated columns.
 - Store each fact once; derive displays and calculated values. Preserve explicit ordering through relationship attributes, and enforce applicable uniqueness, type, and referential constraints.
 - A higher normal form must improve integrity for the actual data; avoid speculative decomposition that adds joins without resolving a real dependency.
+- Do not avoid substantial migrations when they are necessary for correct normalization. Prefer a complete, correct relational model over incremental patches that preserve a flawed design. For existing data, include backups, explicit data transformation, integrity checks, and a tested recovery path.
 - All schema changes require Sqitch deploy, revert, and verify scripts plus a normalization review.

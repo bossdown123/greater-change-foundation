@@ -1,0 +1,12 @@
+SELECT id,title,summary,participant_count,funds_minor,currency FROM events WHERE 0;
+SELECT event_id,position,event_date FROM event_dates WHERE 0;
+SELECT id,name FROM locations WHERE 0;
+SELECT event_id,location_id,position FROM event_locations WHERE 0;
+SELECT id,label,kind FROM field_definitions WHERE 0;
+SELECT event_id,field_id,text_value,number_value,date_value,link_value FROM event_field_values WHERE 0;
+SELECT id,filename,storage_key,thumbnail_key,alt,caption FROM media WHERE 0;
+SELECT event_id,media_id,position FROM event_media WHERE 0;
+SELECT id,title,subject,introduction,body FROM newsletters WHERE 0;
+SELECT newsletter_id,event_id,position FROM newsletter_events WHERE 0;
+SELECT version FROM gcf_schema WHERE id=1 AND version=2;
+PRAGMA foreign_key_check;

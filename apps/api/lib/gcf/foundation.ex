@@ -3,5 +3,6 @@ defmodule Gcf.Foundation do
 
   resources do
     resource(Gcf.Foundation.Status)
+    resource(Gcf.Admin.Resource)
   end
 end

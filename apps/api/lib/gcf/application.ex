@@ -15,6 +15,9 @@ defmodule Gcf.Application do
         []
       end
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: Gcf.Supervisor)
+    Supervisor.start_link([Gcf.Admin.LoginThrottle | children],
+      strategy: :one_for_one,
+      name: Gcf.Supervisor
+    )
   end
 end

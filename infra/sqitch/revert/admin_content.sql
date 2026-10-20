@@ -1,0 +1,16 @@
+BEGIN;
+DROP TABLE newsletter_events;
+DROP TABLE newsletters;
+DROP TABLE event_media;
+DROP TABLE media;
+DROP TRIGGER field_kind_immutable;
+DROP TRIGGER validate_event_field_update;
+DROP TRIGGER validate_event_field_insert;
+DROP TABLE event_field_values;
+DROP TABLE field_definitions;
+DROP TABLE event_locations;
+DROP TABLE locations;
+DROP TABLE event_dates;
+DROP TABLE events;
+UPDATE gcf_schema SET version = 1 WHERE id = 1;
+COMMIT;

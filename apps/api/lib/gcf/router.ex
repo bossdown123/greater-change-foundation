@@ -17,6 +17,15 @@ defmodule Gcf.Router do
     end
   end
 
+  forward("/api/admin", to: Gcf.Admin.Router)
+
+  get "/admin" do
+    conn
+    |> put_resp_content_type("text/html")
+    |> put_resp_header("cache-control", "no-store")
+    |> send_file(200, Application.app_dir(:gcf, "priv/static/index.html"))
+  end
+
   get "/" do
     conn
     |> put_resp_content_type("text/html")
@@ -37,7 +46,7 @@ defmodule Gcf.Router do
     |> put_resp_header("referrer-policy", "strict-origin-when-cross-origin")
     |> put_resp_header(
       "content-security-policy",
-      "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     )
   end
 end
