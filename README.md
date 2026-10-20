@@ -1,10 +1,12 @@
 # Greater Change Foundation
 
-Public charity website starter. The only public page says **GCF UNDER DEVELOPMENT**.
-No donation flow, member accounts, charity content, issues, or project tasks are seeded.
+Public charity website and private collaborative member workspace. The public site
+includes the foundation’s purpose, community work, five photo stories, updates,
+support enquiries and contact details. Donations are handled as email enquiries;
+no payment processor is configured. The GitHub Project stays empty for members.
 
 - React + TypeScript/TSX, Vite, Tailwind CSS and shadcn/ui.
-- Elixir + Ash, served by Bandit/Plug.
+- Elixir + Ash, served by Phoenix/Bandit/Plug with realtime channels.
 - Local Turso/libSQL on the existing Hetzner server; no Turso Cloud account required.
 - Sqitch owns every schema change, including matching deploy/revert/verify SQL.
 - [Blank GitHub Project](https://github.com/users/bossdown123/projects/7), linked to this repository.
@@ -99,25 +101,25 @@ The previous image references are retained in the server's `.env.previous`.
 
 `/admin` provides a password-protected workspace with a shadcn left sidebar,
 a work area with header search and a resizable inspector that opens on selection. Phones use
-Edit/Preview views and drawer navigation. The five sections are:
+Edit/Preview views and drawer navigation. The sections are:
 
-- **Events:** title, story, multiple dates and locations, participant count,
-  funds raised with currency, reusable images, and typed additional facts.
-- **Initiatives:** ongoing work with reusable links to existing events.
-- **Campaigns:** fundraising goals, recorded progress, currency and optional
-  dates, with explicit links to initiatives and events. Linked event amounts
-  are not automatically summed.
-- **Image library:** private JPEG/PNG/WebP uploads (up to 32 MB each), optimized
-  thumbnails, image descriptions, captions, usage information and deletion.
-  Removing an image from an event does not delete it from the library.
-- **Newsletters:** select and order event, initiative and campaign updates, generate an editable draft from their
-  recorded details, then preview, copy, or export HTML/plain text. Generation is
-  deterministic; it does not invent facts or call an AI service. Email delivery,
-  subscriber management and a public blog are not enabled.
+- **Work:** activities, fundraisers and broader campaigns/programmes. Dates,
+  locations, financial facts and reusable photo selections stay with the source
+  record and are linked rather than copied into publications.
+- **Website:** draft articles composed from shared work, rich text and images.
+- **Image library:** private uploads, image descriptions, captions, recorded
+  metadata, usage information and reusable selections. Removing a photo from a
+  story does not remove its library original.
+- **Newsletters:** ordered shared work with editable opening/closing content,
+  live previews and HTML/plain-text exports. Email delivery and subscriber
+  management are not configured.
+- **History** and **People:** attributed audit history and administrator-managed
+  member accounts.
 
-The homepage remains the development placeholder. Admin records and image
-objects are private. The public repository contains no credentials or charity
-photos (only the supplied main logo used on the sign-in screen).
+Public pages use a curated selection of supplied GCF photographs and verified
+copy. Admin drafts and library originals remain private: editing an article does
+not publish it. See [public website content and rendering](docs/PUBLIC_WEBSITE.md)
+for provenance, the public/private boundary and the future release workflow.
 
 See [the relational model](docs/DATA_MODEL.md) for normalization and migration
 requirements. `AGENTS.md` requires at least 3NF, appropriate higher normalization,
@@ -125,7 +127,8 @@ and substantial migrations when needed to fix the data model.
 
 ### Local harness
 
-Run `./bin/dev`, then open `http://127.0.0.1:4173/admin`. This starts **local**
+Run `./bin/dev`, then open `http://127.0.0.1:4173/` for the website or
+`http://127.0.0.1:4173/admin` for the member workspace. This starts **local**
 Turso, a **local** Garage image bucket, the Elixir API and a Vite frontend with
 hot reload. It does not connect to production or require a remote bucket.
 Docker downloads and npm installation require internet on first setup; normal
@@ -168,6 +171,13 @@ while retained originals are in use. Recovery must restore media metadata/data,
 Turso data, Sqitch state and matching secrets.
 
 ### Verification
+
+`npm run build` in `apps/web` checks TypeScript, builds the frontend and prerenders
+the public pages. `node public-site.test.mjs` checks public navigation, search,
+photo viewing and rendered metadata. With the built application running,
+`python3 infra/tests/public_website.py` checks every public route and the private
+workspace boundary. CI runs these alongside the existing checks below.
+
 
 `python3 infra/tests/normalization.py` verifies relational constraints and schema
 reversal. With the app running, `python3 infra/tests/admin_smoke.py` checks actual
