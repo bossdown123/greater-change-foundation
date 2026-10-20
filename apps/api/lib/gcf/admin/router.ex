@@ -160,27 +160,62 @@ defmodule Gcf.Admin.Router do
   end
 
   get "/:collection"
-      when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
+      when collection in [
+             "events",
+             "newsletters",
+             "articles",
+             "initiatives",
+             "campaigns",
+             "media_groups"
+           ] do
     action(conn, "list", Map.put(conn.query_params, "collection", collection))
   end
 
   post "/:collection"
-       when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
+       when collection in [
+              "events",
+              "newsletters",
+              "articles",
+              "initiatives",
+              "campaigns",
+              "media_groups"
+            ] do
     action(conn, "save", %{"collection" => collection, "data" => conn.body_params})
   end
 
   get "/:collection/:id"
-      when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
+      when collection in [
+             "events",
+             "newsletters",
+             "articles",
+             "initiatives",
+             "campaigns",
+             "media_groups"
+           ] do
     action(conn, "get", %{"collection" => collection, "id" => id})
   end
 
   put "/:collection/:id"
-      when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
+      when collection in [
+             "events",
+             "newsletters",
+             "articles",
+             "initiatives",
+             "campaigns",
+             "media_groups"
+           ] do
     action(conn, "save", %{"collection" => collection, "id" => id, "data" => conn.body_params})
   end
 
   delete "/:collection/:id"
-         when collection in ["events", "newsletters", "articles", "initiatives", "campaigns"] do
+         when collection in [
+                "events",
+                "newsletters",
+                "articles",
+                "initiatives",
+                "campaigns",
+                "media_groups"
+              ] do
     action(conn, "delete", %{"collection" => collection, "id" => id})
   end
 

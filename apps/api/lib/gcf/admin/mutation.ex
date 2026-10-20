@@ -101,7 +101,7 @@ defmodule Gcf.Admin.Mutation do
                  [c.resource_id, c.id]}
 
               c.expected && c.resource_id &&
-                  c.resource_type in ~w(events initiatives campaigns newsletters articles media) ->
+                  c.resource_type in ~w(events initiatives campaigns newsletters articles media media_groups) ->
                 {"INSERT INTO audit_context(singleton,action_id) SELECT CASE WHEN EXISTS(SELECT 1 FROM #{c.resource_type} WHERE id=? AND updated_at=?) THEN 1 ELSE 0 END,?",
                  [c.resource_id, c.expected, c.id]}
 

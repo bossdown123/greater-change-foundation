@@ -220,6 +220,14 @@ defmodule Gcf.Admin.MediaMetadata do
 
     args = List.duplicate(q, 6)
 
+    {sql, args} =
+      if is_binary(p["group_id"]) and p["group_id"] != "",
+        do:
+          {sql <>
+             " AND EXISTS(SELECT 1 FROM media_group_members gm WHERE gm.media_id=m.id AND gm.group_id=?)",
+           args ++ [p["group_id"]]},
+        else: {sql, args}
+
     cond do
       p["undated"] == "1" ->
         {sql <> " AND NOT EXISTS(SELECT 1 FROM media_captures c WHERE c.media_id=m.id)", args}

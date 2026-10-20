@@ -161,3 +161,27 @@ Authenticated re-extraction of existing originals also uses the Ash boundary;
 metadata rows have the same context guards and immutable audit coverage as
 other domain tables. Scan completion is tracked separately so a successfully
 read image without EXIF is distinguishable from one still awaiting extraction.
+
+## Reusable photo collections (schema 9)
+
+`media_groups` owns a collection name and identity. `media_group_members` owns the
+ordered many-to-many relation between collections and existing images. Its
+candidate keys are `(group_id, media_id)` and `(group_id, position)`; the position
+is dependent on the membership, never an attribute of the underlying photo.
+
+`event_media_groups`, `initiative_media_groups`, `campaign_media_groups` and
+`publication_media_groups` independently relate each real content type to groups.
+Each has a real foreign key to its owner and to a collection, unique membership
+and unique order per owner. Articles/newsletters share the publications key.
+There are no unchecked polymorphic IDs, JSON membership arrays, copied images,
+or independent copies of collection names, captions or counts. These relations
+are in 3NF/BCNF; the independent memberships are decomposed to avoid multivalued
+and join dependencies. No further decomposition would improve these facts.
+
+API JSON arrays are transport representations of these relations. A photo may
+belong to multiple groups. A group change is reflected by all links. Deleting a
+linked group is restricted; deleting an image used by a group is restricted.
+Removing a group or link never deletes a photo. Creator/modifier attribution and
+membership changes use the same transaction-scoped actor audit as other content.
+Existing data is unchanged. Sqitch reversal refuses to discard nonempty groups;
+restore the paired database/registry backup for recovery with retained groups.

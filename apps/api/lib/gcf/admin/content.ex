@@ -1,6 +1,9 @@
 defmodule Gcf.Admin.Content do
   alias Gcf.Database, as: DB
   @collections ~w(events newsletters articles)
+  def run(operation, %{"collection" => "media_groups"} = params),
+    do: Gcf.Admin.ImageGroups.run(operation, params)
+
   def run(operation, %{"collection" => kind} = params) when kind in ["initiatives", "campaigns"],
     do: Gcf.Admin.Programs.run(operation, params)
 
@@ -33,6 +36,7 @@ defmodule Gcf.Admin.Content do
 
       statements =
         save_statements(collection, id, data, now) ++
+          Gcf.Admin.ImageGroups.statements(collection, id, data["group_ids"]) ++
           Gcf.Admin.RichText.statements(collection, id, data)
 
       statements =
@@ -87,12 +91,21 @@ defmodule Gcf.Admin.Content do
     page = max(1, min(integer(p["page"], 1), 100_000))
     {where, args} = Gcf.Admin.MediaMetadata.filter(p)
 
+    {join, args, order} =
+      if is_binary(p["group_id"]) and p["group_id"] != "",
+        do:
+          {" JOIN media_group_members gm ON gm.media_id=m.id AND gm.group_id=?",
+           [p["group_id"] | args], "group_position,id"},
+        else: {"", args, "created_at DESC,id"}
+
+    position = if join == "", do: "", else: ",gm.position AS group_position"
+
     with {:ok, result} <-
            Gcf.Admin.Page.fetch(
-             "SELECT m.*,(#{Gcf.Admin.RichText.usage_sql()}) AS uses FROM media m WHERE " <>
-               where,
+             "SELECT m.*,(#{Gcf.Admin.RichText.usage_sql()}) AS uses" <>
+               position <> " FROM media m" <> join <> " WHERE " <> where,
              args,
-             "created_at DESC,id",
+             order,
              page,
              48
            ) do
@@ -245,7 +258,8 @@ defmodule Gcf.Admin.Content do
       "custom_fields" => d["custom_fields"] || [],
       "media_ids" => d["media_ids"] || [],
       "initiative_ids" => d["initiative_ids"],
-      "campaign_ids" => d["campaign_ids"]
+      "campaign_ids" => d["campaign_ids"],
+      "group_ids" => d["group_ids"]
     }
 
     cond do
@@ -286,6 +300,7 @@ defmodule Gcf.Admin.Content do
         with {:ok, _} <- load_media(data["media_ids"]),
              :ok <- optional_links("initiatives", data["initiative_ids"]),
              :ok <- optional_links("campaigns", data["campaign_ids"]),
+             :ok <- Gcf.Admin.ImageGroups.validate(data["group_ids"]),
              do: {:ok, data}
     end
   end
@@ -293,12 +308,15 @@ defmodule Gcf.Admin.Content do
   def validate("articles", d), do: validate("newsletters", d)
 
   def validate("newsletters", d) do
-    data = Map.take(d, ~w(title subject introduction body)) |> Map.put("updates", updates(d))
+    data =
+      Map.take(d, ~w(title subject introduction body group_ids)) |> Map.put("updates", updates(d))
 
     if valid_text?(data["title"], 200, true) and valid_text?(data["subject"], 300, true) and
          Gcf.Admin.RichText.valid?(data["introduction"], 10000) and
          Gcf.Admin.RichText.valid?(data["body"], 100_000) do
-      with :ok <- valid_updates(data["updates"]), do: {:ok, data}
+      with :ok <- valid_updates(data["updates"]),
+           :ok <- Gcf.Admin.ImageGroups.validate(data["group_ids"]),
+           do: {:ok, data}
     else
       {:error, "Add a title and subject; keep the newsletter within the text limits"}
     end

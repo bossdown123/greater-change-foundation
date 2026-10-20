@@ -17,3 +17,5 @@ realtime_presence [media_metadata] 2026-10-21T02:00:00Z GCF <development@greater
 rich_documents [realtime_presence] 2026-10-21T03:00:00Z GCF <development@greater-change-foundation.invalid> # Relational library references used inside authored rich documents
 
 publication_views [rich_documents] 2026-10-21T04:00:00Z GCF <development@greater-change-foundation.invalid> # Shared charity work and article/newsletter publication views
+
+media_groups [publication_views] 2026-10-21T05:00:00Z GCF <development@greater-change-foundation.invalid> # Reusable ordered image groups with typed content attachments

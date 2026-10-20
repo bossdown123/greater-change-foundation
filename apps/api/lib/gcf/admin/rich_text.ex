@@ -56,6 +56,7 @@ defmodule Gcf.Admin.RichText do
   def usage_sql(alias_name \\ "m") do
     [
       "event_media",
+      "media_group_members",
       "event_inline_media",
       "initiative_inline_media",
       "campaign_inline_media",

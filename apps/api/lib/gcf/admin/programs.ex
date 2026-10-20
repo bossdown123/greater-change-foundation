@@ -69,7 +69,12 @@ defmodule Gcf.Admin.Programs do
               ),
           else: links
 
-      with {:ok, _} <- DB.batch([base | links] ++ Gcf.Admin.RichText.statements(kind, id, data)),
+      with {:ok, _} <-
+             DB.batch(
+               [base | links] ++
+                 Gcf.Admin.RichText.statements(kind, id, data) ++
+                 Gcf.Admin.ImageGroups.statements(kind, id, data["group_ids"])
+             ),
            do: get(kind, id)
     end
   end
@@ -129,6 +134,7 @@ defmodule Gcf.Admin.Programs do
 
       true ->
         with :ok <- check_ids("events", data["event_ids"]),
+             :ok <- Gcf.Admin.ImageGroups.validate(data["group_ids"]),
              :ok <-
                check_ids(
                  "initiatives",
