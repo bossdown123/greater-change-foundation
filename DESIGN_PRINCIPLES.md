@@ -1,8 +1,8 @@
 # Greater Change Foundation design principles
 
-These principles guide all future website design and implementation. They do not
-expand the current scope: the public website remains **GCF UNDER DEVELOPMENT**
-until further content or functionality is requested.
+These principles guide all website design and implementation. The full public
+website is now authorized, using verified charity facts and selected supplied
+photographs. Private workspaces and unpublished content remain private.
 
 ## An open page, not a collection of cards
 

@@ -2,7 +2,13 @@ defmodule Gcf.Router do
   use Plug.Router
   plug(Plug.Head)
   plug(:security_headers)
-  plug(Plug.Static, at: "/", from: {:gcf, "priv/static"}, only: ~w(assets favicon.svg))
+
+  plug(Plug.Static,
+    at: "/",
+    from: {:gcf, "priv/static"},
+    only: ~w(assets favicon.svg robots.txt sitemap.xml)
+  )
+
   plug(:match)
   plug(:dispatch)
 
@@ -23,13 +29,28 @@ defmodule Gcf.Router do
     conn
     |> put_resp_content_type("text/html")
     |> put_resp_header("cache-control", "no-store")
-    |> send_file(200, Application.app_dir(:gcf, "priv/static/index.html"))
+    |> send_file(200, Application.app_dir(:gcf, "priv/static/admin.html"))
   end
 
   get "/" do
     conn
     |> put_resp_content_type("text/html")
     |> send_file(200, Application.app_dir(:gcf, "priv/static/index.html"))
+  end
+
+  get "/:page" when page in ~w(our-work updates about support privacy) do
+    public_page(conn, page)
+  end
+
+  get "/our-work/:slug"
+      when slug in ~w(childs-month-2025 blood-drive-2024 christmas-2023 anniversary-celebration christmas-2022) do
+    public_page(conn, "our-work--" <> slug)
+  end
+
+  defp public_page(conn, page) do
+    conn
+    |> put_resp_content_type("text/html")
+    |> send_file(200, Application.app_dir(:gcf, "priv/static/pages/" <> page <> ".html"))
   end
 
   match _ do

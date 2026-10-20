@@ -1,7 +1,7 @@
 # Greater Change Foundation
 
 - Commit frequently after meaningful, verified checkpoints.
-- Keep the public page limited to “GCF UNDER DEVELOPMENT” until requested otherwise.
+- The public website is now authorized: use verified GCF copy and selected supplied photographs. Keep admin drafts and private library media out of public responses.
 - Backend: Elixir and Ash; frontend: React TSX, Tailwind CSS, shadcn/ui.
 - Database: Turso/libSQL; all schema changes use Sqitch deploy/revert/verify scripts.
 - Keep credentials, database files, backups, and deployment state out of Git.
