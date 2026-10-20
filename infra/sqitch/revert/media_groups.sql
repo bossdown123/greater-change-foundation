@@ -1,5 +1,5 @@
 BEGIN;
-CREATE TEMP TABLE media_groups_revert_guard(valid INTEGER CHECK(valid=1));
+CREATE TABLE media_groups_revert_guard(valid INTEGER CHECK(valid=1));
 INSERT INTO media_groups_revert_guard SELECT NOT EXISTS(SELECT 1 FROM media_groups);
 DROP TABLE media_groups_revert_guard;
 DROP TRIGGER audit_guard_media_groups_insert;
