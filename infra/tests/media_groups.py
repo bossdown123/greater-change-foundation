@@ -3,8 +3,12 @@ from pathlib import Path
 import sqlite3
 root=Path(__file__).resolve().parents[2]
 db=sqlite3.connect(':memory:');db.execute('PRAGMA foreign_keys=ON')
-for name in ['initialize','admin_content','programmes','identity_audit','media_metadata','realtime_presence','rich_documents','publication_views','media_groups']:
+migrations=['initialize','admin_content','programmes','identity_audit','media_metadata','realtime_presence','rich_documents','publication_views','media_groups']
+for name in migrations:
  db.executescript((root/'infra/sqitch/deploy'/f'{name}.sql').read_text())
+# Earlier migrations must remain verifiable after the new schema is installed.
+for name in migrations:
+ db.executescript((root/'infra/sqitch/verify'/f'{name}.sql').read_text())
 def action(n):
  db.execute("INSERT INTO audit_actions VALUES(?, 'legacy','test','media_groups',NULL,'','2026-10-20T00:00:00Z')",[n]);db.execute('INSERT INTO audit_context VALUES(1,?)',[n])
 def denied(sql,args=()):
