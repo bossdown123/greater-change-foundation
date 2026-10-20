@@ -103,6 +103,14 @@ defmodule Gcf.Admin.Router do
     action(conn, "audit_get", %{"id" => id})
   end
 
+  post "/drafts/:collection"
+       when collection in ["events", "initiatives", "campaigns", "newsletters"] do
+    action(conn, "create_draft", %{
+      "collection" => collection,
+      "draft_id" => conn.body_params["draft_id"]
+    })
+  end
+
   get "/updates" do
     action(conn, "list_updates", conn.query_params)
   end

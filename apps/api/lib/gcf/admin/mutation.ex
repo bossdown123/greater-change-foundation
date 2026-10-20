@@ -17,6 +17,7 @@ defmodule Gcf.Admin.Mutation do
       resource_id: params["id"],
       resource_title: get_in(params, ["data", "title"]) || "",
       occurred_at: DateTime.to_iso8601(DateTime.utc_now()),
+      create_only: operation == "create_draft",
       expected:
         if(operation == "save",
           do: get_in(params, ["data", "updated_at"]),
@@ -88,12 +89,18 @@ defmodule Gcf.Admin.Mutation do
 
         c ->
           context_statement =
-            if c.expected && c.resource_id &&
-                 c.resource_type in ~w(events initiatives campaigns newsletters media) do
-              {"INSERT INTO audit_context(singleton,action_id) SELECT CASE WHEN EXISTS(SELECT 1 FROM #{c.resource_type} WHERE id=? AND updated_at=?) THEN 1 ELSE 0 END,?",
-               [c.resource_id, c.expected, c.id]}
-            else
-              {"INSERT INTO audit_context(singleton,action_id) VALUES(1,?)", [c.id]}
+            cond do
+              c.create_only and c.resource_type in ~w(events initiatives campaigns newsletters) ->
+                {"INSERT INTO audit_context(singleton,action_id) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM #{c.resource_type} WHERE id=?) THEN 1 ELSE 0 END,?",
+                 [c.resource_id, c.id]}
+
+              c.expected && c.resource_id &&
+                  c.resource_type in ~w(events initiatives campaigns newsletters media) ->
+                {"INSERT INTO audit_context(singleton,action_id) SELECT CASE WHEN EXISTS(SELECT 1 FROM #{c.resource_type} WHERE id=? AND updated_at=?) THEN 1 ELSE 0 END,?",
+                 [c.resource_id, c.expected, c.id]}
+
+              true ->
+                {"INSERT INTO audit_context(singleton,action_id) VALUES(1,?)", [c.id]}
             end
 
           prefix =

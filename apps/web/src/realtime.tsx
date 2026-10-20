@@ -42,18 +42,18 @@ export function PresenceDots({section,resourceId}:{section:string;resourceId?:st
 export function ConnectionStatus(){const {connected}=useRealtime();return connected?null:<span className="connection-status" role="status">Reconnecting…</span>}
 // Attach field decoration directly to existing labels; no extra nested input containers.
 export function CollaborativeFields({section,resourceId}:{section:string;resourceId?:string}){
- const {people,userId,locate}=useRealtime(),[fields,setFields]=useState<{element:HTMLInputElement|HTMLTextAreaElement;key:string;label:HTMLElement}[]>([]),last=useRef(0)
+ const {people,userId,locate}=useRealtime(),[fields,setFields]=useState<{element:HTMLInputElement|HTMLTextAreaElement|HTMLDivElement;key:string;label:HTMLElement}[]>([]),last=useRef(0)
  useEffect(()=>{
   const root=document.querySelector(".workspace");if(!root)return
-  function scan(){const counts=new Map<string,number>();const rows=[...root!.querySelectorAll<HTMLInputElement|HTMLTextAreaElement>(".editor input:not([type=checkbox]):not([type=password]),.editor textarea,.image-inspector textarea,.account-editor input:not([type=password])")].flatMap(element=>{
-    if(["file","hidden","submit"].includes(element.type)||element.closest(".password-input"))return []
-    const label=element.closest("label");if(!label)return []
-    const text=element.getAttribute("aria-label")||element.name||[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join("").trim()||element.placeholder||element.type
+  function scan(){const counts=new Map<string,number>();const rows=[...root!.querySelectorAll<HTMLInputElement|HTMLTextAreaElement|HTMLDivElement>(".editor input:not([type=checkbox]):not([type=password]),.editor textarea,.image-inspector textarea,.account-editor input:not([type=password]), .rich-field [contenteditable=true]")].flatMap(element=>{
+    if(["file","hidden","submit"].includes((element as HTMLInputElement).type)||element.closest(".password-input"))return []
+    const label=element.closest<HTMLElement>("label,.rich-field");if(!label)return []
+    const text=element.getAttribute("aria-label")||(element as HTMLInputElement).name||[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join("").trim()||(element as HTMLInputElement).placeholder||(element as HTMLInputElement).type
     const index=counts.get(text)||0;counts.set(text,index+1);const key=`${text}:${index}`
     element.dataset.collabField=key;if(!element.hasAttribute("aria-label"))element.setAttribute("aria-label",text);label.classList.add("collaborative-label");return [{element,key,label}]
   });setFields(previous=>previous.length===rows.length&&previous.every((p,i)=>p.element===rows[i].element&&p.key===rows[i].key)?previous:rows)}
   scan();const observer=new MutationObserver(scan);observer.observe(root,{childList:true,subtree:true})
-  function focus(e:Event){const el=e.target as HTMLInputElement;if(el.dataset.collabField){const form=el.closest<HTMLFormElement>("form");locate({field:el.dataset.collabField,interacted_at:Date.now(),editing:true,...(form?.dataset.collabId?{resource_id:form.dataset.collabId,title:form.dataset.collabTitle}: {})})}}
+  function focus(e:Event){const el=(e.target as HTMLElement).closest<HTMLElement>("[data-collab-field]");if(el?.dataset.collabField){const form=el.closest<HTMLFormElement>("form");locate({field:el.dataset.collabField,interacted_at:Date.now(),editing:true,...(form?.dataset.collabId?{resource_id:form.dataset.collabId,title:form.dataset.collabTitle}: {})})}}
   function input(e:Event){if(Date.now()-last.current>250){last.current=Date.now();focus(e)}}
   function blur(e:Event){if((e.target as HTMLElement).dataset.collabField)locate({field:null})}
   root.addEventListener("focusin",focus);root.addEventListener("input",input);root.addEventListener("focusout",blur)

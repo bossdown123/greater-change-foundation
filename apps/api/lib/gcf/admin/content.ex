@@ -27,10 +27,13 @@ defmodule Gcf.Admin.Content do
   def run("save", %{"collection" => collection, "data" => data} = p)
       when collection in @collections and is_map(data) do
     with {:ok, data} <- validate(collection, data),
-         {:ok, id} <- save_id(collection, p["id"]) do
+         {:ok, id} <- if(p["new_id"], do: {:ok, p["new_id"]}, else: save_id(collection, p["id"])) do
       Gcf.Admin.Mutation.target(collection, id, data["title"])
       now = DateTime.utc_now() |> DateTime.to_iso8601()
-      statements = save_statements(collection, id, data, now)
+
+      statements =
+        save_statements(collection, id, data, now) ++
+          Gcf.Admin.RichText.statements(collection, id, data)
 
       statements =
         if collection == "events",
@@ -67,7 +70,7 @@ defmodule Gcf.Admin.Content do
 
     with {:ok, result} <-
            Gcf.Admin.Page.fetch(
-             "SELECT m.*,(SELECT COUNT(*) FROM event_media WHERE media_id=m.id) AS uses FROM media m WHERE " <>
+             "SELECT m.*,(#{Gcf.Admin.RichText.usage_sql()}) AS uses FROM media m WHERE " <>
                where,
              args,
              "created_at DESC,id",
@@ -84,8 +87,13 @@ defmodule Gcf.Admin.Content do
            DB.execute(
              "SELECT e.id,e.title FROM events e JOIN event_media em ON em.event_id=e.id WHERE em.media_id=?",
              [id]
+           ),
+         {:ok, [%{"uses" => count}]} <-
+           DB.execute(
+             "SELECT (#{Gcf.Admin.RichText.usage_sql()}) AS uses FROM media m WHERE m.id=?",
+             [id]
            ) do
-      {:ok, media_view(row) |> Map.put("events", uses)}
+      {:ok, media_view(row) |> Map.put("events", uses) |> Map.put("uses", count)}
     end
   end
 
@@ -104,7 +112,10 @@ defmodule Gcf.Admin.Content do
   def run("media_delete", %{"id" => id}) do
     with {:ok, row} <- get("media", id),
          {:ok, [%{"uses" => 0}]} <-
-           DB.execute("SELECT count(*) AS uses FROM event_media WHERE media_id=?", [id]),
+           DB.execute(
+             "SELECT (#{Gcf.Admin.RichText.usage_sql()}) AS uses FROM media m WHERE m.id=?",
+             [id]
+           ),
          {:ok, deleted} <-
            DB.execute(
              "DELETE FROM media WHERE id=? AND NOT EXISTS(SELECT 1 FROM event_media WHERE media_id=?) RETURNING id",
@@ -222,8 +233,8 @@ defmodule Gcf.Admin.Content do
       not valid_text?(data["title"], 200, true) ->
         {:error, "An event title is required (up to 200 characters)"}
 
-      not valid_text?(data["summary"], 10_000) ->
-        {:error, "Summary is too long"}
+      not Gcf.Admin.RichText.valid?(data["summary"], 10_000) ->
+        {:error, "Story formatting is invalid or the story is too long"}
 
       not list_of?(data["dates"], 30, &date?/1) or
           length(Enum.uniq(data["dates"])) != length(data["dates"]) ->
@@ -264,7 +275,8 @@ defmodule Gcf.Admin.Content do
     data = Map.take(d, ~w(title subject introduction body)) |> Map.put("updates", updates(d))
 
     if valid_text?(data["title"], 200, true) and valid_text?(data["subject"], 300, true) and
-         valid_text?(data["introduction"], 10000) and valid_text?(data["body"], 100_000) do
+         Gcf.Admin.RichText.valid?(data["introduction"], 10000) and
+         Gcf.Admin.RichText.valid?(data["body"], 100_000) do
       with :ok <- valid_updates(data["updates"]), do: {:ok, data}
     else
       {:error, "Add a title and subject; keep the newsletter within the text limits"}
@@ -539,7 +551,10 @@ defmodule Gcf.Admin.Content do
             end
 
           section =
-            Enum.reject([r["title"], r["summary"] | details], &(&1 in [nil, ""]))
+            Enum.reject(
+              [r["title"], Gcf.Admin.RichText.text(r["summary"]) | details],
+              &(&1 in [nil, ""])
+            )
             |> Enum.join("\n\n")
 
           {:cont, {:ok, sections ++ [section]}}

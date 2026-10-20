@@ -39,8 +39,8 @@ defmodule Gcf.Database do
            ]
          }
        }}
-      when version == "6" ->
-        {:ok, %{status: "ready", database: "turso", schema_version: 6}}
+      when version == "7" ->
+        {:ok, %{status: "ready", database: "turso", schema_version: 7}}
 
       _ ->
         {:error, "Database is unavailable or migrations are pending"}

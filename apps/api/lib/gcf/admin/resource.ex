@@ -34,6 +34,9 @@ defmodule Gcf.Admin.Resource do
 
         result =
           case operation do
+            "create_draft" ->
+              Gcf.Admin.Drafts.create(p, actor)
+
             "sign_out" ->
               with :ok <- Mutation.activity(), do: {:ok, %{signed_out: true}}
 

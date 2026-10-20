@@ -29,7 +29,7 @@ defmodule Gcf.Admin.Programs do
 
   def run("save", %{"collection" => kind, "data" => data} = p) when kind in @kinds do
     with {:ok, data} <- validate(kind, data),
-         {:ok, id} <- existing_id(kind, p["id"]) do
+         {:ok, id} <- if(p["new_id"], do: {:ok, p["new_id"]}, else: existing_id(kind, p["id"])) do
       Gcf.Admin.Mutation.target(kind, id, data["title"])
       now = DateTime.to_iso8601(DateTime.utc_now())
 
@@ -69,7 +69,8 @@ defmodule Gcf.Admin.Programs do
               ),
           else: links
 
-      with {:ok, _} <- DB.batch([base | links]), do: get(kind, id)
+      with {:ok, _} <- DB.batch([base | links] ++ Gcf.Admin.RichText.statements(kind, id, data)),
+           do: get(kind, id)
     end
   end
 
@@ -109,7 +110,7 @@ defmodule Gcf.Admin.Programs do
       not text?(data["title"], 200, true) ->
         {:error, "A name is required (up to 200 characters)"}
 
-      not text?(data["summary"], 10000, false) ->
+      not Gcf.Admin.RichText.valid?(data["summary"], 10000) ->
         {:error, "Story is too long"}
 
       kind == "campaigns" and not (money?(data["target"]) and money?(data["raised"])) ->
