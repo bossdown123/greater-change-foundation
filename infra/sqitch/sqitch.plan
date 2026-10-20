@@ -1,0 +1,5 @@
+%syntax-version=1.0.0
+%project=greater-change-foundation
+%uri=https://github.com/bossdown123/greater-change-foundation
+
+initialize 2026-10-20T20:00:00Z GCF <development@greater-change-foundation.invalid> # Initialize the GCF schema; no charity data

@@ -1,0 +1,39 @@
+name: gcf
+services:
+  database:
+    image: ghcr.io/tursodatabase/libsql-server:latest
+    environment:
+      SQLD_NODE: primary
+    volumes:
+      - database:/var/lib/sqld
+    restart: unless-stopped
+    networks: [internal]
+  migrate:
+    build:
+      context: .
+      dockerfile: infra/sqitch/Dockerfile
+    environment:
+      TURSO_DATABASE_URL: ${TURSO_DATABASE_URL:-http://database:8080}
+      TURSO_AUTH_TOKEN: ${TURSO_AUTH_TOKEN:-}
+    volumes:
+      - sqitch:/state
+    depends_on: [database]
+    networks: [internal, public]
+  app:
+    build: .
+    environment:
+      TURSO_DATABASE_URL: ${TURSO_DATABASE_URL:-http://database:8080}
+      TURSO_AUTH_TOKEN: ${TURSO_AUTH_TOKEN:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports: ["127.0.0.1:4000:4000"]
+    restart: unless-stopped
+    networks: [internal, public]
+volumes:
+  database:
+  sqitch:
+networks:
+  internal:
+    internal: true
+  public:

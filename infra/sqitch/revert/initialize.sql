@@ -1,0 +1,3 @@
+BEGIN;
+DROP TABLE gcf_schema;
+COMMIT;

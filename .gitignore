@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+_build/
+deps/
+*.ez
+*.db
+*.db-*
+.DS_Store
+coverage/
+*.tsbuildinfo

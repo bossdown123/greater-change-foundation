@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""Sqitch SQLite client: local registry, transactional Turso SQL over HTTP.
+
+Sqitch keeps its registry in /state/sqitch.db using DBD::SQLite. Only SQL for
+/state/gcf.db goes to Turso. Back up the registry alongside the database.
+"""
+import json
+import os
+from pathlib import Path
+import sqlite3
+import subprocess
+import sys
+import urllib.error
+import urllib.request
+
+
+def main():
+    args = sys.argv[1:]
+    if args == ['-version']:
+        return subprocess.call(['sqlite3', '-version'])
+    args = [arg for arg in args if arg not in ('-noheader', '-bail', '-batch', '-csv')]
+    if not args:
+        raise ValueError('Database target is required')
+    target, *commands = args
+    if Path(target).name != 'gcf.db':
+        return subprocess.call(['sqlite3', *sys.argv[1:]])
+    command = '\n'.join(commands) if commands else sys.stdin.read()
+    if command.startswith('.read '):
+        filename = command[6:].strip().strip("'").replace("''", "'")
+        command = Path(filename).read_text()
+    statements, pending = [], ''
+    # SQLite's parser understands comments, quoted semicolons, and trigger bodies.
+    for char in command:
+        pending += char
+        if char == ';' and sqlite3.complete_statement(pending):
+            statements.append(pending)
+            pending = ''
+    if pending.strip():
+        if not sqlite3.complete_statement(pending + ';'):
+            raise ValueError('Incomplete migration SQL')
+        statements.append(pending)
+    url = os.environ['TURSO_DATABASE_URL'].replace('libsql://', 'https://', 1).rstrip('/')
+    if not url.startswith(('http://', 'https://')):
+        raise ValueError('TURSO_DATABASE_URL must use http(s) or libsql')
+    token = os.environ.get('TURSO_AUTH_TOKEN', '')
+    if url.startswith('http://') and token:
+        raise ValueError('Refusing to send a database token over plain HTTP')
+    steps = []
+    for index, sql in enumerate(statements):
+        step = {'stmt': {'sql': sql, 'want_rows': False}}
+        if index:
+            step['condition'] = {'type': 'ok', 'step': index - 1}
+        steps.append(step)
+    body = {'requests': [{'type': 'batch', 'batch': {'steps': steps}}, {'type': 'close'}]}
+    headers = {'Content-Type': 'application/json'}
+    if token:
+        headers['Authorization'] = 'Bearer ' + token
+    request = urllib.request.Request(url + '/v2/pipeline', data=json.dumps(body).encode(), headers=headers)
+    with urllib.request.urlopen(request, timeout=30) as response:
+        result = json.load(response)
+    for item in result['results']:
+        if item['type'] == 'error':
+            raise RuntimeError('Turso rejected the migration request')
+        response = item.get('response', {})
+        errors = response.get('result', {}).get('step_errors', [])
+        for error in errors:
+            if error is not None:
+                raise RuntimeError('Migration SQL failed: ' + error.get('message', 'database error'))
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except (ValueError, KeyError, OSError, RuntimeError) as error:
+        # Never log response headers, credentials, or request bodies.
+        print(str(error), file=sys.stderr)
+        sys.exit(1)
