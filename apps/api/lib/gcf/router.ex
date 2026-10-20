@@ -54,7 +54,14 @@ defmodule Gcf.Router do
   end
 
   match _ do
-    json(conn, 404, %{error: "not_found"})
+    if conn.method == "GET" and not String.starts_with?(conn.request_path, "/api/") do
+      conn
+      |> put_resp_content_type("text/html")
+      |> put_resp_header("x-robots-tag", "noindex")
+      |> send_file(404, Application.app_dir(:gcf, "priv/static/pages/404.html"))
+    else
+      json(conn, 404, %{error: "not_found"})
+    end
   end
 
   defp json(conn, status, data) do

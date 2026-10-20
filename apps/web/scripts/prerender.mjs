@@ -11,10 +11,11 @@ try {
  const shell = await readFile('dist/index.html','utf8')
  const escape = text => text.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
  await mkdir('dist/pages',{recursive:true})
- for (const path of publicPaths) {
+ for (const path of [...publicPaths, '/404']) {
   const meta=pageMeta(path),canonical=siteOrigin+path
   const extra=`<link rel="canonical" href="${canonical}"><meta property="og:type" content="${path.startsWith('/our-work/')?'article':'website'}"><meta property="og:title" content="${escape(meta.title)}"><meta property="og:description" content="${escape(meta.description)}"><meta property="og:url" content="${canonical}"><meta property="og:image" content="${siteOrigin+meta.image}"><meta name="twitter:card" content="summary_large_image">`
-  const html=shell.replace(/<title>.*?<\/title>/,`<title>${escape(meta.title)}</title>`).replace(/<meta name="description"[^>]+>/,`<meta name="description" content="${escape(meta.description)}">`).replace('</head>',extra+'</head>').replace('<div id="root"></div>',`<div id="root">${renderToString(React.createElement(PublicSite,{path}))}</div>`)
+  const metadata=path==='/404'?'<meta name="robots" content="noindex,nofollow">':extra
+  const html=shell.replace(/<title>.*?<\/title>/,`<title>${escape(meta.title)}</title>`).replace(/<meta name="description"[^>]+>/,`<meta name="description" content="${escape(meta.description)}">`).replace('</head>',metadata+'</head>').replace('<div id="root"></div>',`<div id="root">${renderToString(React.createElement(PublicSite,{path}))}</div>`)
   await writeFile(path==='/'?'dist/index.html':`dist/pages/${path.slice(1).replaceAll('/','--')}.html`,html)
  }
  // Admin must not hydrate public content or inherit public canonical metadata.

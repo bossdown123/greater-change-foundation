@@ -32,6 +32,10 @@ with urlopen(base+'/admin') as response:
 for path in ['/api/admin/media','/our-work/private-draft','/pages/about.html']:
  try:urlopen(base+path);raise AssertionError('Unexpected public response: '+path)
  except HTTPError as error:assert error.code in [401,404],(path,error.code)
+try:urlopen(base+'/missing-page');raise AssertionError('Missing page returned success')
+except HTTPError as error:
+ assert error.code==404 and error.headers['x-robots-tag']=='noindex'
+ assert b'A different path.' in error.read()
 with urlopen(base+'/sitemap.xml') as response:
  text=response.read().decode();assert '<loc>https://greaterchangefoundation.org/our-work</loc>' in text;assert '/admin' not in text
 print(f'PASS: {len(paths)} built public routes, {len(assets)} images, security headers, sitemap and private workspace boundary')
