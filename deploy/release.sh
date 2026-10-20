@@ -24,5 +24,5 @@ chmod 600 .env
 docker compose -f deploy/compose.yaml up -d --wait database storage
 docker compose -f deploy/compose.yaml run --rm migrate deploy --verify
 docker compose -f deploy/compose.yaml up -d --wait app proxy
-docker compose exec -T storage /garage bucket set-quotas gcf-media --max-size 5G
+docker compose -f deploy/compose.yaml exec -T storage /garage bucket set-quotas gcf-media --max-size 5G
 curl --fail --retry 12 --retry-delay 2 --retry-connrefused http://127.0.0.1:4000/readyz
