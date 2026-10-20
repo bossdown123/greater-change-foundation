@@ -194,6 +194,13 @@ defmodule Gcf.Admin.Router do
   end
 
   defp respond(conn, {:ok, data}), do: json(conn, 200, data)
+
+  defp respond(conn, {:error, %Ash.Error.Forbidden{}}),
+    do: json(conn, 403, %{error: "Administrator access required"})
+
+  defp respond(conn, {:error, :forbidden}),
+    do: json(conn, 403, %{error: "Administrator access required"})
+
   defp respond(conn, {:error, :not_found}), do: json(conn, 404, %{error: "Not found"})
   defp respond(conn, {:error, error}) when is_binary(error), do: json(conn, 422, %{error: error})
 
@@ -201,6 +208,9 @@ defmodule Gcf.Admin.Router do
     case Enum.find_value(errors, fn
            %Ash.Error.Unknown.UnknownError{error: message} when is_binary(message) ->
              {:validation, message}
+
+           %Ash.Error.Unknown.UnknownError{error: :forbidden} ->
+             :forbidden
 
            %Ash.Error.Unknown.UnknownError{error: :not_found} ->
              :not_found
@@ -210,6 +220,7 @@ defmodule Gcf.Admin.Router do
          end) do
       {:validation, message} -> json(conn, 422, %{error: message})
       :not_found -> json(conn, 404, %{error: "Not found"})
+      :forbidden -> json(conn, 403, %{error: "Administrator access required"})
       _ -> json(conn, 422, %{error: "Unable to complete the request. Please try again."})
     end
   end

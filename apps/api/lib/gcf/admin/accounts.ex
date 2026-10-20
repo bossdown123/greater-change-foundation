@@ -120,7 +120,7 @@ defmodule Gcf.Admin.Accounts do
         do: {:error, "You cannot remove your own administrator access."},
         else: save(statements, id)
     else
-      false -> {:error, "Use a valid email, name, role and a password of at least 12 characters."}
+      false -> {:error, "Use a valid email, name, role and a password of at least 10 characters."}
       error -> error
     end
   end
@@ -140,7 +140,7 @@ defmodule Gcf.Admin.Accounts do
     else
       false ->
         {:error,
-         "Check your current password and use at least 12 characters for the new password."}
+         "Check your current password and use at least 10 characters for the new password."}
 
       error ->
         error
@@ -172,7 +172,7 @@ defmodule Gcf.Admin.Accounts do
   defp valid_email?(email),
     do: byte_size(email) <= 254 and Regex.match?(~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/, email)
 
-  defp valid_password?(p), do: is_binary(p) and byte_size(p) in 12..1024
+  defp valid_password?(p), do: is_binary(p) and byte_size(p) in 10..1024
   defp id, do: Base.encode16(:crypto.strong_rand_bytes(16), case: :lower)
   defp now, do: DateTime.to_iso8601(DateTime.utc_now())
 

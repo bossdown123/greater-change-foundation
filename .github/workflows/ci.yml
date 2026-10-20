@@ -61,6 +61,7 @@ jobs:
         run: |
           docker compose up -d --build --wait app
           python3 infra/tests/admin_smoke.py
+          GCF_TEST_IDENTITY=1 GCF_TEST_URL=http://127.0.0.1:4000 python3 infra/tests/account_smoke.py
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: check

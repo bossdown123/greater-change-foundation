@@ -27,7 +27,7 @@ defmodule Gcf.Admin.Resource do
   defp dispatch(operation, p, %{"id" => _, "role" => role} = actor)
        when role in ["administrator", "editor"] do
     if operation in ["list_users", "get_user", "save_user"] and role != "administrator" do
-      {:error, "Administrator access required"}
+      {:error, Ash.Error.Forbidden.exception([])}
     else
       Mutation.run(actor, operation, p, fn ->
         prepare_target(operation, p)

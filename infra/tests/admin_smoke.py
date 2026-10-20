@@ -10,6 +10,8 @@ import struct
 import zlib
 
 base = os.environ.get('GCF_TEST_URL', 'http://127.0.0.1:4000')
+env_values=dict(line.split('=',1) for line in Path('.env').read_text().splitlines() if '=' in line and not line.startswith('#')) if Path('.env').exists() else {}
+email=os.environ.get('GCF_TEST_ADMIN_EMAIL',env_values.get('GCF_ADMIN_EMAIL','admin@example.test'))
 password = Path(os.environ.get('GCF_ADMIN_PASSWORD_FILE', '.admin-password')).read_text().strip()
 jar = http.cookiejar.CookieJar()
 client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
@@ -33,9 +35,11 @@ def call(path, method='GET', data=None, expected=200, headers=None):
 
 call('/events', expected=401)
 csrf = call('/session')['csrf']
-call('/session', 'POST', {'password': password}, expected=403, headers={'X-CSRF-Token': 'invalid'})
-csrf = call('/session', 'POST', {'password': password})['csrf']
-assert call('/session')['authenticated']
+call('/session', 'POST', {'email': email, 'password': password}, expected=403, headers={'X-CSRF-Token': 'invalid'})
+csrf = call('/session', 'POST', {'email': email, 'password': password})['csrf']
+session=call('/session')
+assert session['authenticated']
+actor_id=session['user']['id']
 def high_resolution_png():
     def chunk(kind, data):
         return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
@@ -62,6 +66,7 @@ try:
     media = call('/media/' + media['id'], 'PATCH', {'alt':'GCF logo for integration test','caption':'Temporary test image'})
     event_data = {'title':'Integration test — remove me','summary':'A community event.', 'dates':['2026-11-01','2026-11-02'],'locations':['Community centre','Town hall'],'participants':0,'funds_raised':123.45,'currency':'JMD','media_ids':[media['id']], 'custom_fields':[{'label':'Volunteers','type':'number','value':12},{'label':'Partner','type':'text','value':'Local community'},{'label':'Review date','type':'date','value':'2026-11-03'},{'label':'Project URL','type':'link','value':'https://example.org'}]}
     event = call('/events','POST',event_data)
+    assert event['created_by']==event['updated_by']==actor_id
     for key,value in event_data.items():
         assert event[key] == value, (key,event[key],value)
     call('/media/' + media['id'], 'DELETE', expected=422)
@@ -69,8 +74,17 @@ try:
     assert 'date' in call('/events','POST',{**event_data,'dates':['not-a-date']},expected=422)['error'].lower()
     call('/events','POST',{**event_data,'media_ids':['0'*32]},expected=422)
     event_data['locations']=['Town hall']
+    event_data['created_by']='forged-actor'
+    event_data['updated_by']='forged-actor'
     event = call('/events/'+event['id'],'PUT',event_data)
     assert event['locations']==['Town hall']
+    assert event['created_by']==event['updated_by']==actor_id
+    history=call('/audit?resource_id='+event['id'])['items']
+    assert all(a['actor_id']==actor_id for a in history)
+    assert {'create','update'}.issubset({a['operation'] for a in history})
+    detail=call('/audit/'+next(a['id'] for a in history if a['operation']=='create'))
+    assert any(c['column_name']=='title' and c['new_value']==event_data['title'] for c in detail['changes'])
+    assert all(c['column_name']!='password_hash' for c in detail['changes'])
     initiative = call('/initiatives','POST',{'title':'Test initiative','summary':'Initiative story','event_ids':[event['id']]})
     campaign = call('/campaigns','POST',{'title':'Test campaign','summary':'Campaign story','event_ids':[event['id']],'initiative_ids':[initiative['id']],'target':2000,'raised':750.25,'currency':'JMD','starts_on':'2026-10-01','ends_on':'2026-12-31'})
     linked_event = call('/events/'+event['id'])
