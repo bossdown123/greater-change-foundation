@@ -28,6 +28,7 @@ defmodule Gcf.Admin.Content do
       when collection in @collections and is_map(data) do
     with {:ok, data} <- validate(collection, data),
          {:ok, id} <- save_id(collection, p["id"]) do
+      Gcf.Admin.Mutation.target(collection, id, data["title"])
       now = DateTime.utc_now() |> DateTime.to_iso8601()
       statements = save_statements(collection, id, data, now)
 
@@ -149,6 +150,7 @@ defmodule Gcf.Admin.Content do
          {:ok, mime, ext} <- image_type(bytes),
          {:ok, thumb} <- thumbnail(file.path),
          id = uuid(),
+         :ok <- Gcf.Admin.Mutation.target("media", id, Path.basename(file.filename)),
          key = "media/#{id}/original.#{ext}",
          thumbnail_key = "media/#{id}/thumbnail.webp",
          {:ok, _} <- Gcf.Admin.Storage.request(:put, key, bytes, mime),

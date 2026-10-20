@@ -174,3 +174,21 @@ reversal. With the app running, `python3 infra/tests/admin_smoke.py` checks actu
 sign-in, CSRF rejection, image storage/readback, event relations, shared-image
 usage, newsletter generation/persistence and cleanup. CI runs both, in addition
 to Elixir tests, the frontend build and Sqitch's Turso deploy/revert/verify cycle.
+
+### Named administrator accounts and history
+
+Set `GCF_ADMIN_EMAIL` before the first schema-4 application start. The existing
+`GCF_ADMIN_PASSWORD_HASH` initializes that account only when `users` is empty;
+authentication then uses the database account. Local first-time setups default
+to `admin@example.test`. Existing shared-password cookies are invalidated.
+
+Administrators can manage named Administrator/Editor accounts under People.
+Editors manage content and read history; only administrators manage accounts.
+Disable accounts instead of deleting them. A password, email, access or active
+status change revokes existing sessions; changing your own password signs you
+out. No invitation or email-reset delivery is configured.
+
+History provides filtered, paginated actions and relational before/after values.
+Each content record retains its creator and latest modifier. Ash establishes the
+authenticated actor, and database guards ensure that writes and audit records
+commit together. See `docs/DATA_MODEL.md` for guarantees and migration recovery.

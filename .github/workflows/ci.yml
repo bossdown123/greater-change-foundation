@@ -43,7 +43,9 @@ jobs:
       - run: npm ci && npm run build
         working-directory: apps/web
       - name: Verify relational constraints
-        run: python3 infra/tests/normalization.py
+        run: |
+          python3 infra/tests/normalization.py
+          python3 infra/tests/identity_audit.py
       - name: Verify migrations against Turso
         run: |
           cp .env.example .env

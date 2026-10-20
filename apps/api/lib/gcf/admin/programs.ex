@@ -30,6 +30,7 @@ defmodule Gcf.Admin.Programs do
   def run("save", %{"collection" => kind, "data" => data} = p) when kind in @kinds do
     with {:ok, data} <- validate(kind, data),
          {:ok, id} <- existing_id(kind, p["id"]) do
+      Gcf.Admin.Mutation.target(kind, id, data["title"])
       now = DateTime.to_iso8601(DateTime.utc_now())
 
       base =

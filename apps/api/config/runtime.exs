@@ -8,6 +8,7 @@ config :gcf,
 
 config :gcf,
   session_secret: System.get_env("GCF_SESSION_SECRET", ""),
+  admin_email: System.get_env("GCF_ADMIN_EMAIL", ""),
   admin_password_hash: System.get_env("GCF_ADMIN_PASSWORD_HASH", ""),
   cookie_secure: System.get_env("GCF_COOKIE_SECURE", "true") == "true",
   storage: [

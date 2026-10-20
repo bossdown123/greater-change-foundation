@@ -17,7 +17,14 @@ defmodule Gcf.Admin.Router do
   get "/session" do
     if Auth.configured?() do
       {conn, token} = Auth.csrf(conn)
-      json(conn, 200, %{authenticated: Auth.authenticated?(conn), csrf: token, configured: true})
+      actor = Auth.actor(conn)
+
+      json(conn, 200, %{
+        authenticated: actor != nil,
+        user: if(actor, do: Gcf.Admin.Accounts.public(actor)),
+        csrf: token,
+        configured: true
+      })
     else
       json(conn, 200, %{authenticated: false, configured: false})
     end
@@ -28,24 +35,66 @@ defmodule Gcf.Admin.Router do
       not Gcf.Admin.LoginThrottle.allow?(conn.remote_ip) ->
         json(conn, 429, %{error: "Too many sign-in attempts. Try again in five minutes."})
 
-      Auth.verify(conn.body_params["password"]) ->
-        token = Auth.random()
-
-        conn
-        |> configure_session(renew: true)
-        |> clear_session()
-        |> put_session(:admin, true)
-        |> put_session(:expires, System.system_time(:second) + 28_800)
-        |> put_session(:csrf, token)
-        |> json(200, %{authenticated: true, csrf: token})
-
       true ->
-        json(conn, 401, %{error: "The password is incorrect."})
+        case invoke("sign_in", conn.body_params, nil) do
+          {:ok, %{user: user, session_version: version}} ->
+            token = Auth.random()
+
+            conn
+            |> configure_session(renew: true)
+            |> clear_session()
+            |> put_session(:user_id, user["id"])
+            |> put_session(:session_version, version)
+            |> put_session(:expires, System.system_time(:second) + 28_800)
+            |> put_session(:csrf, token)
+            |> json(200, %{authenticated: true, user: user, csrf: token})
+
+          _ ->
+            json(conn, 401, %{error: "Email or password is incorrect."})
+        end
     end
   end
 
   delete "/session" do
-    conn |> configure_session(drop: true) |> json(200, %{authenticated: false})
+    case invoke("sign_out", %{}, conn.assigns.actor) do
+      {:ok, _} -> conn |> configure_session(drop: true) |> json(200, %{authenticated: false})
+      error -> respond(conn, error)
+    end
+  end
+
+  get "/users" do
+    action(conn, "list_users", conn.query_params)
+  end
+
+  post "/users" do
+    action(conn, "save_user", %{"data" => conn.body_params})
+  end
+
+  get "/users/:id" do
+    action(conn, "get_user", %{"id" => id})
+  end
+
+  put "/users/:id" do
+    action(conn, "save_user", %{"id" => id, "data" => conn.body_params})
+  end
+
+  put "/password" do
+    case invoke("change_password", conn.body_params, conn.assigns.actor) do
+      {:ok, data} -> conn |> configure_session(drop: true) |> json(200, data)
+      error -> respond(conn, error)
+    end
+  end
+
+  get "/actors" do
+    action(conn, "list_actors", %{})
+  end
+
+  get "/audit" do
+    action(conn, "audit_list", conn.query_params)
+  end
+
+  get "/audit/:id" do
+    action(conn, "audit_get", %{"id" => id})
   end
 
   get "/updates" do
@@ -57,7 +106,7 @@ defmodule Gcf.Admin.Router do
   end
 
   post "/media" do
-    respond(conn, Gcf.Admin.Content.upload(conn.body_params["file"], conn.body_params))
+    action(conn, "upload", conn.body_params)
   end
 
   get "/media/:id/thumbnail" do
@@ -113,6 +162,7 @@ defmodule Gcf.Admin.Router do
 
   defp guard(conn, _) do
     conn = conn |> fetch_query_params() |> put_resp_header("cache-control", "no-store")
+    conn = assign(conn, :actor, Auth.actor(conn))
     public_session = conn.path_info == ["session"] and conn.method in ["GET", "POST"]
 
     cond do
@@ -122,7 +172,7 @@ defmodule Gcf.Admin.Router do
       not Auth.configured?() ->
         json(conn, 503, %{error: "Administrator access has not been configured"}) |> halt()
 
-      not public_session and not Auth.authenticated?(conn) ->
+      not public_session and conn.assigns.actor == nil ->
         json(conn, 401, %{error: "Please sign in"}) |> halt()
 
       conn.method not in ["GET", "HEAD"] and not Auth.valid_csrf?(conn) ->
@@ -134,14 +184,13 @@ defmodule Gcf.Admin.Router do
   end
 
   defp action(conn, operation, params) do
-    result =
-      Gcf.Admin.Resource
-      |> Ash.ActionInput.for_action(:run, %{operation: operation, params: params},
-        actor: :gcf_admin
-      )
-      |> Ash.run_action()
+    respond(conn, invoke(operation, params, conn.assigns.actor))
+  end
 
-    respond(conn, result)
+  defp invoke(operation, params, actor) do
+    Gcf.Admin.Resource
+    |> Ash.ActionInput.for_action(:run, %{operation: operation, params: params}, actor: actor)
+    |> Ash.run_action()
   end
 
   defp respond(conn, {:ok, data}), do: json(conn, 200, data)

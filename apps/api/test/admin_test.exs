@@ -3,9 +3,9 @@ defmodule Gcf.AdminTest do
   import Plug.Test
 
   test "unconfigured admin APIs fail closed" do
-    previous = Application.get_env(:gcf, :admin_password_hash)
-    Application.put_env(:gcf, :admin_password_hash, "")
-    on_exit(fn -> Application.put_env(:gcf, :admin_password_hash, previous) end)
+    previous = Application.get_env(:gcf, :session_secret)
+    Application.put_env(:gcf, :session_secret, "")
+    on_exit(fn -> Application.put_env(:gcf, :session_secret, previous) end)
     response = Gcf.Router.call(conn(:get, "/api/admin/events"), Gcf.Router.init([]))
     assert response.status == 503
   end

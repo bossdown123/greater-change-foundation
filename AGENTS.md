@@ -35,3 +35,10 @@ design or interaction decisions. Its requirements include:
 - A higher normal form must improve integrity for the actual data; avoid speculative decomposition that adds joins without resolving a real dependency.
 - Do not avoid substantial migrations when they are necessary for correct normalization. Prefer a complete, correct relational model over incremental patches that preserve a flawed design. For existing data, include backups, explicit data transformation, integrity checks, and a tested recovery path.
 - All schema changes require Sqitch deploy, revert, and verify scripts plus a normalization review.
+
+## Identity and audit
+
+- Route every API mutation, including uploads and account changes, through the Ash action boundary. Use the authenticated actor, never a browser-supplied actor or creator ID.
+- Database writes require the transaction-scoped audit context. Keep content changes and audit rows atomic; preserve creator attribution and update modifier attribution for direct and relational changes.
+- Keep audit history append-only and relational. Never log plaintext passwords, password hashes, session secrets, cookies or CSRF tokens.
+- Preserve account identities by disabling accounts rather than deleting them. Revoke sessions on credential, role or active-status changes.

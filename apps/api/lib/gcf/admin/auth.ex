@@ -37,14 +37,19 @@ defmodule Gcf.Admin.Auth do
   end
 
   def configured? do
-    byte_size(Application.get_env(:gcf, :session_secret, "")) >= 64 and
-      Application.get_env(:gcf, :admin_password_hash, "") != ""
+    byte_size(Application.get_env(:gcf, :session_secret, "")) >= 64
   end
 
-  def authenticated?(conn) do
-    configured?() and get_session(conn, :admin) == true and
-      (get_session(conn, :expires) || 0) > System.system_time(:second)
+  def actor(conn) do
+    if configured?() and (get_session(conn, :expires) || 0) > System.system_time(:second) do
+      Gcf.Admin.Accounts.session_actor(
+        get_session(conn, :user_id),
+        get_session(conn, :session_version)
+      )
+    end
   end
+
+  def authenticated?(conn), do: actor(conn) != nil
 
   def valid_csrf?(conn) do
     expected = get_session(conn, :csrf)
@@ -58,13 +63,21 @@ defmodule Gcf.Admin.Auth do
     end
   end
 
-  def verify(password) when is_binary(password) and byte_size(password) <= 1024 do
-    case String.split(Application.get_env(:gcf, :admin_password_hash, ""), ":") do
+  def hash_password(password) do
+    salt = :crypto.strong_rand_bytes(16)
+    hash = :crypto.pbkdf2_hmac(:sha256, password, salt, 600_000, 32)
+    "pbkdf2:" <> Base.encode16(salt, case: :lower) <> ":" <> Base.encode16(hash, case: :lower)
+  end
+
+  def verify_hash(password, encoded)
+      when is_binary(password) and byte_size(password) <= 1024 and is_binary(encoded) do
+    case String.split(encoded, ":") do
       ["pbkdf2", salt, hash] ->
         with {:ok, salt} <- Base.decode16(salt, case: :mixed),
-             {:ok, expected} <- Base.decode16(hash, case: :mixed) do
+             {:ok, expected} <- Base.decode16(hash, case: :mixed),
+             true <- byte_size(expected) == 32 do
           actual = :crypto.pbkdf2_hmac(:sha256, password, salt, 600_000, 32)
-          byte_size(expected) == 32 and Plug.Crypto.secure_compare(actual, expected)
+          Plug.Crypto.secure_compare(actual, expected)
         else
           _ -> false
         end
@@ -74,7 +87,7 @@ defmodule Gcf.Admin.Auth do
     end
   end
 
-  def verify(_), do: false
+  def verify_hash(_, _), do: false
   def random, do: Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
 end
 

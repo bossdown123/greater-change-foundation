@@ -39,8 +39,8 @@ defmodule Gcf.Database do
            ]
          }
        }}
-      when version == "3" ->
-        {:ok, %{status: "ready", database: "turso", schema_version: 3}}
+      when version == "4" ->
+        {:ok, %{status: "ready", database: "turso", schema_version: 4}}
 
       _ ->
         {:error, "Database is unavailable or migrations are pending"}
@@ -53,7 +53,14 @@ defmodule Gcf.Database do
     end
   end
 
-  def batch(statements) do
+  def batch(statements, opts \\ []) do
+    with {:ok, framed, prefix, suffix} <- Gcf.Admin.Mutation.frame(statements, opts),
+         {:ok, results} <- perform(framed) do
+      {:ok, results |> Enum.drop(prefix) |> Enum.take(length(results) - prefix - suffix)}
+    end
+  end
+
+  defp perform(statements) do
     url = Application.get_env(:gcf, :turso_url, "") || ""
     token = Application.get_env(:gcf, :turso_token, "")
     headers = if token == "", do: [], else: [{"authorization", "Bearer " <> token}]

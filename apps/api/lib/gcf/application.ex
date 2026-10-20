@@ -4,6 +4,11 @@ defmodule Gcf.Application do
   def start(_type, _args) do
     children =
       if Application.get_env(:gcf, :serve, true) do
+        case Gcf.Admin.Accounts.bootstrap() do
+          {:error, _} -> raise "Unable to initialize administrator account"
+          _ -> :ok
+        end
+
         [
           {Bandit,
            plug: Gcf.Router,

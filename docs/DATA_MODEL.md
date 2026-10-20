@@ -85,3 +85,54 @@ upgrade-and-reversal test checks that preservation. The initial and admin
 verification scripts accept later schema versions; they verify the enduring
 objects they introduced rather than requiring the whole schema to remain at an
 old version.
+
+## Named identities and audit history (schema 4)
+
+`actors.id` identifies an enduring principal. User actors have one `users` row
+(key/foreign key `users.id`); system actors identify bootstrap work and legacy
+imports. User names and unique, lower-case email addresses belong only to
+`users`. System labels belong only to system actors. Accounts are disabled,
+never deleted. Password hashes and session versions are private credentials.
+
+Each content table has a one-to-one attribution relation (`events_attribution`,
+`initiatives_attribution`, `campaigns_attribution`, `newsletters_attribution`,
+`media_attribution`). `record_id` is its primary key and foreign key to the
+content record; it determines the creator and most recent modifier actor IDs.
+This avoids polymorphic foreign keys. Existing records explicitly reference the
+legacy actor, without fabricating a human creator. Changes to ordered facts or
+links also update the affected records' modifier attribution.
+
+An Ash action establishes the authenticated actor and a unique action ID. The
+SQL boundary puts that context, the domain mutation, and its audit entries in
+the same `BEGIN IMMEDIATE` transaction. The transaction-local context relation
+is empty after commit, and domain triggers reject writes without it. This uses
+SQLite's single writer to prevent concurrent requests sharing an actor context.
+A failed batch rolls back both content and audit. A multi-batch action uses one
+action ID, so each committed change is attributable even if a subsequent read
+fails. External object storage is not part of the SQL transaction: uploads are
+compensated if persistence fails, while deletion is recorded when its database
+reference is removed.
+
+`audit_actions.id` determines actor, operation, historical resource identity and
+title, and timestamp. These are observations at the action's time, not copies
+of the resource's current mutable title. `audit_rows.id` determines the action,
+table and row operation; `audit_values(row_id,column_name)` determines one
+before/after pair and its scalar SQLite types. Composite record keys appear as
+individual scalar fields; no relationship lists or JSON snapshots are stored.
+Historical observations have their own keys and do not inherit the functional
+dependencies of current domain entities. These relations meet 3NF; separate
+change/field relations handle their independent repeating facts. No further
+join or temporal dependency currently warrants 5NF/6NF decomposition.
+
+Audit tables reject UPDATE and DELETE. This is an application/database integrity
+boundary, not a claim of cryptographic tamper evidence against the server's
+operator. Passwords, password hashes, cookies, CSRF tokens and session secrets
+never enter audit values. Password changes use a non-secret change marker.
+There are no endpoints for editing or deleting history. Sign-ins, sign-outs and
+generated drafts are recorded as activities without invented database diffs.
+
+The Sqitch upgrade preserves existing content and foreign keys and assigns legacy
+attribution. Revert removes the new identity/history structures; production
+rollback should restore the pre-deploy database backup if history must be kept.
+Migration tests cover existing data, rollback atomicity, no-context rejection,
+creator preservation, modifier changes, secrets exclusion and immutable history.

@@ -10,6 +10,7 @@ values = dict(line.split('=', 1) for line in path.read_text().splitlines() if li
 password = secrets.token_urlsafe(24)
 salt = secrets.token_bytes(16)
 defaults = {
+    'GCF_ADMIN_EMAIL': 'admin@example.test',
     'GCF_SESSION_SECRET': secrets.token_hex(64),
     'GCF_ADMIN_PASSWORD_HASH': 'pbkdf2:' + salt.hex() + ':' + hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 600000).hex(),
     'GARAGE_RPC_SECRET': secrets.token_hex(32),

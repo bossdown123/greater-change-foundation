@@ -49,6 +49,7 @@ services:
     build: .
     environment:
       GCF_SESSION_SECRET: ${GCF_SESSION_SECRET:?Configure local .env}
+      GCF_ADMIN_EMAIL: ${GCF_ADMIN_EMAIL:?Configure initial administrator email}
       GCF_ADMIN_PASSWORD_HASH: ${GCF_ADMIN_PASSWORD_HASH:?Configure local .env}
       GCF_COOKIE_SECURE: "false"
       S3_ENDPOINT: http://storage:3900
