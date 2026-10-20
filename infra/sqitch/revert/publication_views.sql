@@ -1,0 +1,13 @@
+BEGIN;
+CREATE TABLE publication_revert_guard(value INTEGER CHECK(value=0));
+INSERT INTO publication_revert_guard SELECT COUNT(*) FROM publications WHERE format='article';
+DROP TABLE publication_revert_guard;
+DROP TRIGGER publication_format_immutable;
+DROP VIEW work_records;
+DROP VIEW articles_attribution;
+DROP VIEW articles;
+DROP VIEW newsletters;
+ALTER TABLE publications DROP COLUMN format;
+ALTER TABLE publications RENAME TO newsletters;
+UPDATE gcf_schema SET version=7 WHERE id=1;
+COMMIT;
