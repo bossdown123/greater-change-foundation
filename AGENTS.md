@@ -13,6 +13,7 @@
 Read and follow [DESIGN_PRINCIPLES.md](DESIGN_PRINCIPLES.md) before making website
 design or interaction decisions. Its requirements include:
 
+- Paginate all collections lazily in bounded batches. Never render page-number selectors or Previous/Next page controls.
 - Show, don’t tell: use the actual output, icons, hierarchy, and concise status feedback; avoid repeated headings and instructional prose. Keep accessible control names and essential field labels.
 - Open, content-led layouts; cards and bordered containers are not the default.
 - Shallow semantic markup with minimal wrappers. Strongly discourage cards

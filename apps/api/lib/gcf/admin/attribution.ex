@@ -23,6 +23,7 @@ defmodule Gcf.Admin.Attribution do
       )
 
     by_id = Map.new(owners, &{&1["record_id"], Map.delete(&1, "record_id")})
-    Enum.map(rows, &Map.merge(&1, Map.get(by_id, &1["id"], %{})))
+    result = Enum.map(rows, &Map.merge(&1, Map.get(by_id, &1["id"], %{})))
+    if table == "media", do: Gcf.Admin.MediaMetadata.attach(result), else: result
   end
 end

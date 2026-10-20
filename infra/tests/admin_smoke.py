@@ -9,6 +9,9 @@ import uuid
 import struct
 import zlib
 
+if os.environ.get('GCF_TEST_DATABASE') != '1':
+    raise SystemExit('Fixture tests require GCF_TEST_DATABASE=1 and a disposable database')
+
 base = os.environ.get('GCF_TEST_URL', 'http://127.0.0.1:4000')
 env_values=dict(line.split('=',1) for line in Path('.env').read_text().splitlines() if '=' in line and not line.startswith('#')) if Path('.env').exists() else {}
 email=os.environ.get('GCF_TEST_ADMIN_EMAIL',env_values.get('GCF_ADMIN_EMAIL','admin@example.test'))

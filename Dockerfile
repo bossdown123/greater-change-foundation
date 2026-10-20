@@ -18,7 +18,7 @@ COPY --from=web /web/dist/ priv/static/
 RUN mix compile --warnings-as-errors && mix release
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends openssl libstdc++6 libncurses6 ca-certificates curl imagemagick && rm -rf /var/lib/apt/lists/* && useradd --system --uid 10001 gcf
+RUN apt-get update && apt-get install -y --no-install-recommends openssl libstdc++6 libncurses6 ca-certificates curl imagemagick libimage-exiftool-perl && rm -rf /var/lib/apt/lists/* && useradd --system --uid 10001 gcf
 WORKDIR /app
 COPY --from=build --chown=gcf:gcf /app/_build/prod/rel/gcf ./
 USER gcf

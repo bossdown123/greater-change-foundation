@@ -31,8 +31,10 @@ with the actual state clearly active. Never imply publication has occurred when
 it has not.
 
 Previews show the generated output directly. Empty fields should not be filled
-with instructions. Collections use numbered pagination and a concise result
-range, with pagination omitted when there is only one page.
+with instructions. Collections paginate lazily in bounded batches as users scroll. Never show page
+number selectors or Previous/Next page controls. Preserve loaded content,
+selection and scroll position, and provide concise loading/end feedback only
+where it helps.
 
 ## Keep the document structure shallow
 
@@ -149,3 +151,17 @@ caption and accessibility editing belong in the selected image's inspector.
 Use real checkbox state and a visible outline for selection, with accessible
 names on icon controls. Keep the selected image, search, page, and scroll position
 when opening and closing details. Reflow as the work area is resized.
+
+## Lazy pagination
+
+Paginate every collection at the API boundary. Load further batches lazily as
+people scroll; never ask them to choose page numbers or use Previous/Next page
+selectors. This applies to the image library, content lists, account lists,
+audit history, and pickers. Keep filters and selections intact during loading.
+
+Photo date and location controls summarize recorded metadata once above the
+library. Keep masonry gaps and outer gutters tight. Prefer a date-range slider
+with exact date inputs, preserve recorded local time, and keep undated images
+available. Never infer GPS/place names or replace absent capture dates with an
+upload timestamp. Missing metadata belongs in a concise summary or inspector,
+not a repeated warning on every image.

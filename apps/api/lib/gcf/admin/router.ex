@@ -109,6 +109,14 @@ defmodule Gcf.Admin.Router do
     action(conn, "upload", conn.body_params)
   end
 
+  get "/media/metadata-summary" do
+    action(conn, "media_summary", conn.query_params)
+  end
+
+  post "/media/:id/metadata" do
+    action(conn, "media_metadata", %{"id" => id})
+  end
+
   get "/media/:id/thumbnail" do
     send_image(conn, id, true)
   end

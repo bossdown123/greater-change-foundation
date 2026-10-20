@@ -63,12 +63,13 @@ defmodule Gcf.Admin.Content do
 
   def run("media_list", p) do
     page = max(1, min(integer(p["page"], 1), 100_000))
-    query = "%" <> String.slice(to_string(p["query"] || ""), 0, 200) <> "%"
+    {where, args} = Gcf.Admin.MediaMetadata.filter(p)
 
     with {:ok, result} <-
            Gcf.Admin.Page.fetch(
-             "SELECT *, (SELECT COUNT(*) FROM event_media WHERE media_id=media.id) AS uses FROM media WHERE filename LIKE ? OR caption LIKE ? OR alt LIKE ?",
-             [query, query, query],
+             "SELECT m.*,(SELECT COUNT(*) FROM event_media WHERE media_id=m.id) AS uses FROM media m WHERE " <>
+               where,
+             args,
              "created_at DESC,id",
              page,
              48
@@ -148,6 +149,7 @@ defmodule Gcf.Admin.Content do
          true <- size in 1..33_554_432,
          {:ok, bytes} <- File.read(file.path),
          {:ok, mime, ext} <- image_type(bytes),
+         {:ok, metadata} <- Gcf.Admin.MediaMetadata.read(file.path),
          {:ok, thumb} <- thumbnail(file.path),
          id = uuid(),
          :ok <- Gcf.Admin.Mutation.target("media", id, Path.basename(file.filename)),
@@ -159,19 +161,23 @@ defmodule Gcf.Admin.Content do
       caption = String.slice(to_string(p["caption"] || ""), 0, 2000)
       filename = Path.basename(file.filename) |> String.slice(0, 240)
 
-      case DB.execute(
-             "INSERT INTO media(id,filename,mime_type,size_bytes,storage_key,thumbnail_key,alt,caption,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+      case DB.batch(
              [
-               id,
-               filename,
-               mime,
-               size,
-               key,
-               thumbnail_key,
-               alt,
-               caption,
-               DateTime.to_iso8601(DateTime.utc_now())
-             ]
+               {
+                 "INSERT INTO media(id,filename,mime_type,size_bytes,storage_key,thumbnail_key,alt,caption,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                 [
+                   id,
+                   filename,
+                   mime,
+                   size,
+                   key,
+                   thumbnail_key,
+                   alt,
+                   caption,
+                   DateTime.to_iso8601(DateTime.utc_now())
+                 ]
+               }
+             ] ++ Gcf.Admin.MediaMetadata.statements(id, metadata)
            ) do
         {:ok, _} ->
           run("media_get", %{"id" => id})

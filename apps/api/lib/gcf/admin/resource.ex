@@ -43,6 +43,12 @@ defmodule Gcf.Admin.Resource do
             op when op in ["audit_list", "audit_get"] ->
               Audit.run(op, p)
 
+            "media_summary" ->
+              Gcf.Admin.MediaMetadata.summary(p)
+
+            "media_metadata" ->
+              Gcf.Admin.MediaMetadata.refresh(p["id"])
+
             "list_actors" ->
               Gcf.Admin.Audit.actors()
 

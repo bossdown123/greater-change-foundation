@@ -136,3 +136,28 @@ attribution. Revert removes the new identity/history structures; production
 rollback should restore the pre-deploy database backup if history must be kept.
 Migration tests cover existing data, rollback atomicity, no-context rejection,
 creator preservation, modifier changes, secrets exclusion and immutable history.
+
+## Photo metadata (schema 5)
+
+Photo dimensions, capture timestamps, geographic coordinates, embedded place
+names and scan completion are separate relations keyed by `media_id` (place
+names use `(media_id,kind)`). This keeps independently missing facts independent
+and avoids a JSON metadata store. Each key determines its scalar attributes;
+there are no transitive place hierarchies or inferred geographic identities.
+The tables meet 3NF. Splitting these independent facts also provides the useful
+6NF-style decomposition for sparse photo metadata without splitting coordinate
+components that belong to one observation.
+
+ExifTool reads allow-listed fields from originals; originals are never modified.
+Stored dimensions account for EXIF orientation. The original capture time is
+preferred, followed by recorded digitization time or GPS time with its explicit
+source retained. Local time and optional UTC offset remain separate: missing
+time zones, GPS or place names are not guessed, and filesystem/upload times do
+not become capture dates. Date filtering uses the recorded local calendar day.
+No reverse geocoding or external location lookup is performed.
+
+Uploads persist metadata in the same audited SQL batch as the image record.
+Authenticated re-extraction of existing originals also uses the Ash boundary;
+metadata rows have the same context guards and immutable audit coverage as
+other domain tables. Scan completion is tracked separately so a successfully
+read image without EXIF is distinguishable from one still awaiting extraction.
