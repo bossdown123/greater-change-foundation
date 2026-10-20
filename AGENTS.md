@@ -24,3 +24,12 @@ design or interaction decisions. Its requirements include:
 - Joint mobile and desktop design, with high responsiveness and accessible
   interactions on both.
 - Creative, purposeful use of supplied graphics.
+
+## Database normalization
+
+- Every persistent database schema must meet **third normal form (3NF) at a minimum**. Document keys, functional dependencies, and intentional exceptions before accepting a migration.
+- Strive for **5NF and 6NF** where independent relationships, join dependencies, temporal facts, or sparsity warrant the additional decomposition. Review the applicable meaning of **7NF** when a design calls for it; 7NF has no single universally accepted definition, so state the definition and demonstrate its benefit rather than claiming it by name alone.
+- Use relational tables and foreign keys for repeatable facts and relationships. Do not put event dates, locations, gallery assignments, custom-field values, or newsletter event selections in JSON blobs or comma-separated columns.
+- Store each fact once; derive displays and calculated values. Preserve explicit ordering through relationship attributes, and enforce applicable uniqueness, type, and referential constraints.
+- A higher normal form must improve integrity for the actual data; avoid speculative decomposition that adds joins without resolving a real dependency.
+- All schema changes require Sqitch deploy, revert, and verify scripts plus a normalization review.
