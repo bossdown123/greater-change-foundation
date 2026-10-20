@@ -1,5 +1,6 @@
 defmodule Gcf.Router do
   use Plug.Router
+  plug(Plug.Head)
   plug(:security_headers)
   plug(Plug.Static, at: "/", from: {:gcf, "priv/static"}, only: ~w(assets favicon.svg))
   plug(:match)

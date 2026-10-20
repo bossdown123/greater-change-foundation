@@ -2,6 +2,12 @@ defmodule Gcf.RouterTest do
   use ExUnit.Case, async: false
   import Plug.Test
 
+  test "HEAD requests use the same route without a response body" do
+    response = Gcf.Router.call(conn(:head, "/healthz"), Gcf.Router.init([]))
+    assert response.status == 200
+    assert response.resp_body == ""
+  end
+
   test "liveness works without database credentials" do
     response = Gcf.Router.call(conn(:get, "/healthz"), Gcf.Router.init([]))
     assert response.status == 200
