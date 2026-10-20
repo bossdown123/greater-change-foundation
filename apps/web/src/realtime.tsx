@@ -53,15 +53,15 @@ export function CollaborativeFields({section,resourceId}:{section:string;resourc
     element.dataset.collabField=key;if(!element.hasAttribute("aria-label"))element.setAttribute("aria-label",text);label.classList.add("collaborative-label");return [{element,key,label}]
   });setFields(previous=>previous.length===rows.length&&previous.every((p,i)=>p.element===rows[i].element&&p.key===rows[i].key)?previous:rows)}
   scan();const observer=new MutationObserver(scan);observer.observe(root,{childList:true,subtree:true})
-  function focus(e:Event){const el=e.target as HTMLInputElement;if(el.dataset.collabField)locate({field:el.dataset.collabField,interacted_at:Date.now(),editing:true})}
+  function focus(e:Event){const el=e.target as HTMLInputElement;if(el.dataset.collabField){const form=el.closest<HTMLFormElement>("form");locate({field:el.dataset.collabField,interacted_at:Date.now(),editing:true,...(form?.dataset.collabId?{resource_id:form.dataset.collabId,title:form.dataset.collabTitle}: {})})}}
   function input(e:Event){if(Date.now()-last.current>250){last.current=Date.now();focus(e)}}
   function blur(e:Event){if((e.target as HTMLElement).dataset.collabField)locate({field:null})}
   root.addEventListener("focusin",focus);root.addEventListener("input",input);root.addEventListener("focusout",blur)
   return()=>{observer.disconnect();root.removeEventListener("focusin",focus);root.removeEventListener("input",input);root.removeEventListener("focusout",blur);locate({field:null});fields.forEach(({element,label})=>{element.style.removeProperty("--editor-color");element.classList.remove("collaborative-input");label.classList.remove("collaborative-label")})}
  },[section,resourceId])
  return <>{fields.map(({element,key,label})=>{
-  const unique=new Map<string,Collaborator>();for(const p of people)if(p.id!==userId&&p.section===section&&p.resource_id===(resourceId||null)&&p.field===key){const prior=unique.get(p.id);if(!prior||(prior.interacted_at||0)<(p.interacted_at||0))unique.set(p.id,p)}
-  const editors=[...unique.values()].sort((a,b)=>(b.interacted_at||0)-(a.interacted_at||0)),color=editors[0]?.color
+  const unique=new Map<string,Collaborator>();for(const p of people)if(p.id!==userId&&p.section===section&&p.resource_id===(element.closest<HTMLFormElement>("form")?.dataset.collabId||resourceId||null)&&p.field===key){const prior=unique.get(p.id);if(!prior||(prior.interacted_at||0)<(p.interacted_at||0))unique.set(p.id,p)}
+  const latest=[...unique.values()].sort((a,b)=>(b.interacted_at||0)-(a.interacted_at||0)),color=latest[0]?.color,editors=[...unique.values()].sort((a,b)=>a.name.localeCompare(b.name))
   element.classList.toggle("collaborative-input",!!color);if(color)element.setAttribute("aria-describedby",`field-presence-${fields.findIndex(f=>f.element===element)}`);else if(element.getAttribute("aria-describedby")?.startsWith("field-presence-"))element.removeAttribute("aria-describedby");if(color)element.style.setProperty("--editor-color",color);else element.style.removeProperty("--editor-color")
   return color?createPortal(<span className="field-editors" style={{"--editor-color":color} as React.CSSProperties} role="status" id={`field-presence-${fields.findIndex(f=>f.element===element)}`} aria-label={`Editing ${key.split(":")[0]}: ${editors.map(p=>p.name).join(", ")}`}>{editors.map(p=><span key={p.id}><i style={{background:p.color}}/>{p.name}</span>)}</span>,label,key):null
  })}</>

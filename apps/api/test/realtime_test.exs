@@ -12,12 +12,11 @@ defmodule Gcf.RealtimeTest do
     params = %{"collection" => "events", "id" => "e", "data" => %{"updated_at" => "old"}}
 
     Mutation.run(%{"id" => "u"}, "save", params, fn ->
-      assert {:ok, [{create, []}, {check, ["e", "old"]}, {drop, []} | _], 5, 1} =
+      assert {:ok, [_action, {check, ["e", "old", _action_id]} | _], 2, 1} =
                Mutation.frame([{"UPDATE events SET title=? WHERE id=?", ["New", "e"]}], [])
 
-      assert create =~ "CREATE TEMP TABLE"
       assert check =~ "updated_at=?"
-      assert drop =~ "DROP TABLE"
+      assert check =~ "CASE WHEN EXISTS"
     end)
   end
 

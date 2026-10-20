@@ -87,35 +87,29 @@ defmodule Gcf.Admin.Mutation do
           {:error, :audit_context_required}
 
         c ->
-          guard =
+          context_statement =
             if c.expected && c.resource_id &&
                  c.resource_type in ~w(events initiatives campaigns newsletters media) do
-              [
-                {"CREATE TEMP TABLE gcf_revision_check(ok INTEGER CONSTRAINT gcf_stale_revision CHECK(ok=1))",
-                 []},
-                {"INSERT INTO gcf_revision_check SELECT CASE WHEN EXISTS(SELECT 1 FROM #{c.resource_type} WHERE id=? AND updated_at=?) THEN 1 ELSE 0 END",
-                 [c.resource_id, c.expected]},
-                {"DROP TABLE gcf_revision_check", []}
-              ]
+              {"INSERT INTO audit_context(singleton,action_id) SELECT CASE WHEN EXISTS(SELECT 1 FROM #{c.resource_type} WHERE id=? AND updated_at=?) THEN 1 ELSE 0 END,?",
+               [c.resource_id, c.expected, c.id]}
             else
-              []
+              {"INSERT INTO audit_context(singleton,action_id) VALUES(1,?)", [c.id]}
             end
 
           prefix =
-            guard ++
-              [
-                {"INSERT INTO audit_actions(id,actor_id,operation,resource_type,resource_id,resource_title,occurred_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
-                 [
-                   c.id,
-                   c.actor_id,
-                   c.operation,
-                   c.resource_type,
-                   c.resource_id,
-                   c.resource_title,
-                   c.occurred_at
-                 ]},
-                {"INSERT INTO audit_context(singleton,action_id) VALUES(1,?)", [c.id]}
-              ]
+            [
+              {"INSERT INTO audit_actions(id,actor_id,operation,resource_type,resource_id,resource_title,occurred_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
+               [
+                 c.id,
+                 c.actor_id,
+                 c.operation,
+                 c.resource_type,
+                 c.resource_id,
+                 c.resource_title,
+                 c.occurred_at
+               ]},
+              context_statement
+            ]
 
           {:ok, prefix ++ statements ++ [{"DELETE FROM audit_context WHERE singleton=1", []}],
            length(prefix), 1}

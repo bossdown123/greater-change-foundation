@@ -46,7 +46,7 @@ defmodule Gcf.Router do
     |> put_resp_header("referrer-policy", "strict-origin-when-cross-origin")
     |> put_resp_header(
       "content-security-policy",
-      "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' wss://greaterchangefoundation.org wss://www.greaterchangefoundation.org ws://127.0.0.1:4000 ws://127.0.0.1:4173 ws://localhost:4000 ws://localhost:4173; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     )
   end
 end

@@ -117,7 +117,7 @@ defmodule Gcf.Database do
       Enum.all?(errors, &is_nil/1) ->
         :ok
 
-      Enum.any?(errors, &String.contains?(inspect(&1), "gcf_stale_revision")) ->
+      Enum.any?(errors, &String.contains?(inspect(&1), "singleton=1")) ->
         {:error, "Another editor saved changes. Review the updated fields before saving."}
 
       true ->
