@@ -141,6 +141,23 @@ defmodule Gcf.Admin.Router do
   defp respond(conn, {:error, :not_found}), do: json(conn, 404, %{error: "Not found"})
   defp respond(conn, {:error, error}) when is_binary(error), do: json(conn, 422, %{error: error})
 
+  defp respond(conn, {:error, %{errors: errors}}) do
+    case Enum.find_value(errors, fn
+           %Ash.Error.Unknown.UnknownError{error: message} when is_binary(message) ->
+             {:validation, message}
+
+           %Ash.Error.Unknown.UnknownError{error: :not_found} ->
+             :not_found
+
+           _ ->
+             nil
+         end) do
+      {:validation, message} -> json(conn, 422, %{error: message})
+      :not_found -> json(conn, 404, %{error: "Not found"})
+      _ -> json(conn, 422, %{error: "Unable to complete the request. Please try again."})
+    end
+  end
+
   defp respond(conn, {:error, _}),
     do:
       json(conn, 422, %{error: "Unable to complete the request. Check the fields and try again."})

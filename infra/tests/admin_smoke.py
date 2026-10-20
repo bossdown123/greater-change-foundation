@@ -49,7 +49,7 @@ try:
         assert event[key] == value, (key,event[key],value)
     call('/media/' + media['id'], 'DELETE', expected=422)
     assert call('/media/' + media['id'])['events'][0]['id'] == event['id']
-    call('/events','POST',{**event_data,'dates':['not-a-date']},expected=422)
+    assert 'date' in call('/events','POST',{**event_data,'dates':['not-a-date']},expected=422)['error'].lower()
     call('/events','POST',{**event_data,'media_ids':['0'*32]},expected=422)
     event_data['locations']=['Town hall']
     event = call('/events/'+event['id'],'PUT',event_data)
