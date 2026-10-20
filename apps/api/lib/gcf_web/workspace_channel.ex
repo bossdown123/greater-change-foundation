@@ -99,6 +99,7 @@ defmodule GcfWeb.WorkspaceChannel do
       resource_id: text(params["resource_id"], 64),
       title: text(params["title"], 120),
       field: text(params["field"], 200),
+      field_active: params["field_active"] == true,
       interacted_at: System.system_time(:millisecond),
       editing: params["editing"] == true
     }

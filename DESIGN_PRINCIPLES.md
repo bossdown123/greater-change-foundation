@@ -173,3 +173,5 @@ not a repeated warning on every image.
 - Assign each account a persistent presence color. Show who is editing which item. Sidebar presence dots are 4 px circles, anchored at the bottom-right, right-aligned and extending left with even spacing. Deduplicate multiple tabs per person; provide accessible names and activity details, never color alone.
 
 - Field presence uses one continuous 2 px outline outside the input, joined to a bottom-right overlay with a concave left join and continuous right edge. Stack editor names vertically without reserving layout space. Each editor row retains its own account-colored background; only the outer outline follows the most recent editor. Do not layer duplicate input, focus, and presence borders.
+
+- When a person leaves a field, collapse only their name row into a 4 px account-colored dot at the field’s bottom-right. Keep active people expanded, retain inactive identities as recent presence, and treat a rich-text editor and its formatting controls as one field.
