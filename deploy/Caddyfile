@@ -2,7 +2,9 @@
     encode zstd gzip
     reverse_proxy app:4000
 }
+www.{$GCF_DOMAIN} {
+    redir https://{$GCF_DOMAIN}{uri} permanent
+}
 http://5.161.104.141 {
-    encode zstd gzip
-    reverse_proxy app:4000
+    redir https://{$GCF_DOMAIN}{uri} permanent
 }

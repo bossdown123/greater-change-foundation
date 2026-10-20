@@ -9,7 +9,7 @@ No donation flow, member accounts, charity content, issues, or project tasks are
 - Sqitch owns every schema change, including matching deploy/revert/verify SQL.
 - [Blank GitHub Project](https://github.com/users/bossdown123/projects/7), linked to this repository.
   The project is private; add charity members through GitHub's project access settings.
-- [Website](https://gcf.5-161-104-141.sslip.io) (temporary hostname until a charity domain is chosen).
+- [Website](https://greaterchangefoundation.org).
 
 ## Run locally
 
@@ -61,7 +61,7 @@ Production configuration is `deploy/compose.yaml`. Source/configuration resides
 at `/opt/greater-change-foundation`, persistent state at `/var/lib/gcf` (a symlink
 to the existing mounted Hetzner volume), and
 pre-deployment backups at `/var/backups/gcf`. Caddy obtains HTTPS certificates
-for the temporary hostname. Only web ports and SSH need to be public; the app's
+for the charity domain. Only web ports and SSH need to be public; the app's
 port 4000 is loopback-only and the database has no host port.
 
 Deploying stops the app and database briefly to take a consistent paired backup.

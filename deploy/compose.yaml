@@ -41,7 +41,7 @@ services:
   proxy:
     image: caddy:2.11.2-alpine
     environment:
-      GCF_DOMAIN: ${GCF_DOMAIN:-gcf.5-161-104-141.sslip.io}
+      GCF_DOMAIN: ${GCF_DOMAIN:-greaterchangefoundation.org}
     ports: ["80:80", "443:443", "443:443/udp"]
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
