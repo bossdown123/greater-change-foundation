@@ -83,7 +83,62 @@ defmodule GcfWeb.WorkspaceChannel do
     end
   end
 
+  def handle_in("cursor", params, socket) do
+    selection =
+      if is_map(params["selection"]),
+        do: Map.take(params["selection"], ~w(anchor head type)),
+        else: nil
+
+    pointer? =
+      params["kind"] == "pointer" and coordinate?(params["x"]) and coordinate?(params["y"])
+
+    caret? =
+      params["kind"] == "caret" and is_map(selection) and selection["type"] in ~w(text rich) and
+        position?(selection["anchor"]) and position?(selection["head"])
+
+    valid =
+      params["kind"] in ~w(pointer caret) and params["section"] in @sections and
+        is_binary(params["resource_id"]) and
+        Regex.match?(~r/^[a-f0-9]{32}$/, params["resource_id"]) and is_binary(params["field"]) and
+        byte_size(params["field"]) <= 200 and (pointer? or caret? or params["hidden"] == true)
+
+    if valid and valid?(socket) do
+      now = System.monotonic_time(:millisecond)
+      key = params["kind"]
+      last = Map.get(socket.assigns, :cursor_sent, %{})
+
+      if params["hidden"] == true or now - Map.get(last, key, now - 100) >= 40 do
+        actor = socket.assigns.actor
+
+        broadcast_from!(socket, "cursor", %{
+          kind: key,
+          section: params["section"],
+          resource_id: params["resource_id"],
+          field: params["field"],
+          hidden: params["hidden"] == true,
+          x: if(coordinate?(params["x"]), do: params["x"], else: nil),
+          y: if(coordinate?(params["y"]), do: params["y"], else: nil),
+          selection: if(caret?, do: selection, else: nil),
+          connection_id: socket.assigns.connection_id,
+          actor_id: actor["id"],
+          name: actor["name"],
+          color: actor["color"],
+          at: System.system_time(:millisecond)
+        })
+
+        {:reply, :ok, assign(socket, :cursor_sent, Map.put(last, key, now))}
+      else
+        {:reply, :ok, socket}
+      end
+    else
+      {:reply, {:error, %{reason: "invalid_cursor"}}, socket}
+    end
+  end
+
   def handle_in(_, _, socket), do: {:reply, {:error, %{reason: "unsupported"}}, socket}
+
+  defp coordinate?(value), do: is_number(value) and value >= 0 and value <= 1
+  defp position?(value), do: is_integer(value) and value >= 0 and value <= 1_000_000
 
   defp valid?(socket) do
     actor = socket.assigns.actor

@@ -10,6 +10,7 @@ import { Gallery } from "./admin-gallery"
 import { api, PreviewContext, type Media } from "./admin"
 import { WorkspaceHeader } from "./admin-layout"
 import { readDocument, writeDocument, safeHref, figureWidth, type RichNode } from "./rich-document"
+import { registerRichSelection } from "./cursor-position"
 import { FigureReference } from "./figure-reference"
 const Figure=Node.create({name:"gcfFigure",group:"block",content:"inline*",draggable:true,isolating:true,
  addKeyboardShortcuts(){return {Enter:()=>{const {state}=this.editor;if(state.selection.$from.parent.type.name!==this.name)return false;const after=state.selection.$from.after();return this.editor.chain().insertContentAt(after,{type:"paragraph"}).setTextSelection(after+1).run()}}},
@@ -24,7 +25,13 @@ export default function RichEditor({label,value,onChange,plain=false}:{label:str
  const editor=useEditor({extensions:[StarterKit.configure({heading:plain?false:{levels:[2,3]},bulletList:plain?false:undefined,orderedList:plain?false:undefined,blockquote:plain?false:undefined,bold:plain?false:undefined,italic:plain?false:undefined,strike:plain?false:undefined,underline:plain?false:undefined,codeBlock:false,code:false,link:plain?false:{openOnClick:false}}),TextAlign.configure({types:["heading","paragraph"]}),Figure],content:readDocument(value) as JSONContent,immediatelyRender:true,
  editorProps:{attributes:{role:"textbox","aria-multiline":"true","aria-labelledby":labelId,"aria-label":label,"data-rich-label":label,class:"rich-surface"}},
  onUpdate:({editor})=>{latest.current=plain?editor.getText({blockSeparator:"\n"}):writeDocument(editor.getJSON() as RichNode);changed.current(latest.current);render(n=>n+1)},onSelectionUpdate:()=>render(n=>n+1)})
- useEffect(()=>{if(editor&&value!==latest.current){latest.current=value;editor.commands.setContent(readDocument(value) as JSONContent,{emitUpdate:false})}},[editor,value])
+ useEffect(()=>{if(editor&&value!==latest.current){
+  const before=editor.state.doc,next=editor.schema.nodeFromJSON(readDocument(value)),selection=editor.state.selection,start=before.content.findDiffStart(next.content),end=before.content.findDiffEnd(next.content)
+  const map=(position:number)=>start===null||!end?position:position<=start?position:position>=end.a?position+end.b-end.a:start+Math.min(position-start,Math.max(0,end.b-start))
+  const clamp=(position:number)=>Math.max(1,Math.min(position,Math.max(1,next.content.size-1)))
+  latest.current=value;editor.chain().setContent(next.toJSON() as JSONContent,{emitUpdate:false}).setTextSelection({from:clamp(map(selection.anchor)),to:clamp(map(selection.head))}).run()
+ }},[editor,value])
+ useEffect(()=>{if(!editor)return;return registerRichSelection(editor.view.dom,{read:()=>({anchor:editor.state.selection.anchor,head:editor.state.selection.head,type:'rich'}),rect:position=>editor.view.coordsAtPos(Math.max(0,Math.min(position,editor.state.doc.content.size)))})},[editor])
  if(!editor)return null
  const act=(name:string,icon:React.ReactNode,run:()=>void,active=false,disabled=false)=><Button key={name} type="button" variant="ghost" size="icon" aria-label={name} title={name} aria-pressed={active} disabled={disabled} onMouseDown={e=>e.preventDefault()} onClick={run}>{icon}</Button>
  function chooseImages(){position.current={from:editor!.state.selection.from,to:editor!.state.selection.to};setPicking(true)}

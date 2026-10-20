@@ -23,6 +23,14 @@ try{
  first.send('location',{section:'events',resource_id:'transport-check',field:'Event title:0',field_active:false})
  const inactive=await second.wait('presence_diff',p=>p.joins?.[user.id]?.metas?.some(m=>m.field==='Event title:0'&&m.field_active===false))
  assert.ok(inactive.joins[user.id].metas.some(m=>m.field==='Event title:0'&&m.field_active===false),'leaving retains recent field presence as inactive')
+ first.send('cursor',{kind:'caret',section:'events',resource_id:'c'.repeat(32),field:'Event title:0',selection:{anchor:1,head:3,type:'text'},name:'Forged',color:'#ffffff'})
+ const caret=await second.wait('cursor',p=>p.kind==='caret')
+ assert.equal(caret.name,user.name);assert.equal(caret.color,user.color);assert.equal(caret.selection.head,3)
+ assert.equal(caret.connection_id,first.connectionId)
+ first.send('cursor',{kind:'pointer',section:'events',resource_id:'c'.repeat(32),field:'Event title:0',x:.5,y:.25})
+ const pointer=await second.wait('cursor',p=>p.kind==='pointer');assert.equal(pointer.x,.5)
+ first.send('cursor',{kind:'pointer',section:'events',resource_id:'c'.repeat(32),field:'Event title:0',x:10,y:.25})
+ await first.wait('phx_reply',p=>p.status==='error'&&p.response.reason==='invalid_cursor')
  first.send('location',{section:'not-a-section'});const reply=await first.wait('phx_reply',p=>p.status==='error');assert.equal(reply.status,'error')
  assert.equal((await api('/audit')).total,before.total,'presence and reads must not enter audit')
  if(process.env.GCF_TEST_DATABASE==='1'){
@@ -42,9 +50,11 @@ try{
     const signedIn=await api('/session','POST',{email:member.email,password});csrf=signedIn.csrf
     other=await connection();cookie=adminCookie;csrf=adminCsrf
     const historyBefore=(await api('/audit')).total
-    first.send('draft',{kind:'events',id:record.id,fields:{summary:'First editor typing'},name:'Forged author'})
+    first.send('draft',{kind:'events',id:record.id,fields:{summary:'First editor typing'},base_fields:{summary:''},name:'Forged author'})
     const live=await other.wait('draft',p=>p.id===record.id&&p.fields.summary==='First editor typing')
-    assert.equal(live.actor_id,user.id);assert.equal(live.name,user.name);assert.equal(live.connection_id,first.connectionId)
+    assert.equal(live.base_fields.summary,'');assert.equal(live.actor_id,user.id);assert.equal(live.name,user.name);assert.equal(live.connection_id,first.connectionId)
+    other.send('cursor',{kind:'caret',section:'events',resource_id:record.id,field:'The story:0',selection:{anchor:1,head:2,type:'rich'}})
+    const richCaret=await first.wait('cursor',p=>p.actor_id===member.id);assert.equal(richCaret.name,'Second editor');assert.equal(richCaret.selection.type,'rich')
     other.send('draft',{kind:'events',id:record.id,fields:{summary:'Second editor typing'}})
     const back=await first.wait('draft',p=>p.id===record.id&&p.actor_id===member.id)
     assert.equal(back.fields.summary,'Second editor typing')

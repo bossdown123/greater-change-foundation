@@ -21,10 +21,10 @@ function mergeNode(base:unknown,local:unknown,remote:unknown):Merge{
  }
  return {value:local,conflict:true}
 }
-export function mergeLiveField(base:unknown,local:unknown,remote:unknown):Merge{
+export function mergeLiveField(base:unknown,local:unknown,remote:unknown,allowTextMerge=true):Merge{
  if(equalValue(local,remote)||equalValue(base,remote))return {value:local,conflict:false}
  if(equalValue(base,local))return {value:remote,conflict:false}
- if(typeof base==='string'&&typeof local==='string'&&typeof remote==='string'){
+ if(allowTextMerge&&typeof base==='string'&&typeof local==='string'&&typeof remote==='string'){
   if([base,local,remote].every(v=>v.startsWith(RICH))){try{const result=mergeNode(JSON.parse(base.slice(RICH.length)),JSON.parse(local.slice(RICH.length)),JSON.parse(remote.slice(RICH.length)));return {...result,value:RICH+JSON.stringify(result.value)}}catch{return {value:local,conflict:true}}}
   if(![base,local,remote].some(v=>v.startsWith(RICH)))return mergeText(base,local,remote)
  }

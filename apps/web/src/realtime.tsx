@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 import { Socket, Presence, type Channel } from "phoenix"
 import { api } from "./admin"
 import type { PeerDraft } from "./collaboration-state"
+import { CollaborativeCursors,type CursorSignal } from "./collaborative-cursors"
 import { fieldPresenceShape } from "./field-presence-shape"
 export type Activity={name:string;color:string;section:string;resource_id:string|null;title:string|null;editing:boolean;field?:string|null;field_active?:boolean;interacted_at?:number;connection_id?:string}
 export type Collaborator=Activity&{id:string}
@@ -25,13 +26,16 @@ export function RealtimeProvider({userId,activity,onRevoked,children}:{userId?:s
    const {token}=await api<{token:string}>("/realtime-token");if(stopped)return
    socket=new Socket("/live",{params:{token}});const localSocket=socket;let failed=false;const fail=()=>{if(failed||stopped)return;failed=true;retry()};const room=socket.channel("admin:workspace",{}),presence=new Presence(room);channel.current=room
    presence.onSync(()=>setPeople(presence.list((id,{metas})=>metas.map((meta:unknown)=>({...meta as Activity,id} as Collaborator))).flat()))
+   room.on("cursor",cursor=>{window.dispatchEvent(new CustomEvent("gcf:cursor",{detail:cursor}))})
    room.on("draft",draft=>{window.dispatchEvent(new CustomEvent<PeerDraft>("gcf:draft",{detail:draft}))})
    room.on("changed",change=>{window.dispatchEvent(new CustomEvent("gcf:changed",{detail:change}))})
    room.on("revoked",()=>{stopped=true;socket?.disconnect();setConnected(false);setPeople([]);revoke.current()})
    room.onError(fail);localSocket.onClose(fail);localSocket.onError(fail)
    socket.connect();room.join().receive("ok",()=>{setConnected(true);room.push("location",current.current);window.dispatchEvent(new CustomEvent("gcf:changed",{detail:{resource_type:"reconnect"}}))}).receive("error",fail).receive("timeout",fail)
   }catch{retry()}}
-  void connect();return()=>{stopped=true;clearTimeout(timer);channel.current=null;socket?.disconnect();setPeople([]);setConnected(false)}
+  const cursor=(event:Event)=>channel.current?.push("cursor",(event as CustomEvent<CursorSignal>).detail)
+  window.addEventListener("gcf:local-cursor",cursor)
+  void connect();return()=>{window.removeEventListener("gcf:local-cursor",cursor);stopped=true;clearTimeout(timer);channel.current=null;socket?.disconnect();setPeople([]);setConnected(false)}
  },[userId])
  return <RealtimeContext.Provider value={{people,connected,userId,locate,sendDraft:draft=>{channel.current?.push("draft",draft)}}}>{children}</RealtimeContext.Provider>
 }
@@ -45,7 +49,7 @@ export function PresenceDots({section,resourceId}:{section:string;resourceId?:st
 export function ConnectionStatus(){const {connected}=useRealtime();return connected?null:<span className="connection-status" role="status">Reconnecting…</span>}
 // Attach field decoration directly to existing labels; no extra nested input containers.
 export function CollaborativeFields({section,resourceId}:{section:string;resourceId?:string}){
- const {people,locate}=useRealtime(),[fields,setFields]=useState<{element:HTMLInputElement|HTMLTextAreaElement|HTMLDivElement;key:string;label:HTMLElement}[]>([]),last=useRef(0)
+ const {people,locate,userId}=useRealtime(),[fields,setFields]=useState<{element:HTMLInputElement|HTMLTextAreaElement|HTMLDivElement;key:string;label:HTMLElement}[]>([]),last=useRef(0)
  useEffect(()=>{
   const root=document.querySelector(".workspace");if(!root)return
   let idle:ReturnType<typeof setTimeout>
@@ -79,7 +83,7 @@ export function CollaborativeFields({section,resourceId}:{section:string;resourc
   const latest=[...unique.values()].sort((a,b)=>(b.interacted_at||0)-(a.interacted_at||0)),color=latest[0]?.color,editors=[...unique.values()].sort((a,b)=>a.name.localeCompare(b.name))
   element.classList.toggle("collaborative-input",!!color);if(color)element.setAttribute("aria-describedby",`field-presence-${key.replace(/[^a-z0-9]/gi,"-")}`);else if(element.getAttribute("aria-describedby")?.startsWith("field-presence-"))element.removeAttribute("aria-describedby");if(color)element.style.setProperty("--editor-color",color);else element.style.removeProperty("--editor-color")
   return color?createPortal(<FieldPresenceFrame element={element} label={label} field={key} editors={editors} color={color}/>,label,key):null
- })}</>
+ })}<CollaborativeCursors fields={fields} section={section} resourceId={resourceId} people={people} userId={userId}/></>
 }
 
 function FieldPresenceFrame({element,label,field,editors,color}:{element:HTMLElement;label:HTMLElement;field:string;editors:Collaborator[];color:string}){

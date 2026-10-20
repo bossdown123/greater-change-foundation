@@ -6,7 +6,7 @@ import {build} from 'esbuild'
 import {JSDOM} from 'jsdom'
 import React,{act,useState} from 'react'
 const dir=mkdtempSync(new URL('./.collaboration-test-',import.meta.url)),dom=new JSDOM('<!doctype html><html><body><div id="test"></div></body></html>')
-Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,Node:dom.window.Node,MutationObserver:dom.window.MutationObserver,CustomEvent:dom.window.CustomEvent,IS_REACT_ACT_ENVIRONMENT:true})
+Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,HTMLInputElement:dom.window.HTMLInputElement,HTMLTextAreaElement:dom.window.HTMLTextAreaElement,Node:dom.window.Node,MutationObserver:dom.window.MutationObserver,CustomEvent:dom.window.CustomEvent,IS_REACT_ACT_ENVIRONMENT:true})
 globalThis.requestAnimationFrame=callback=>setTimeout(callback,0)
 globalThis.cancelAnimationFrame=clearTimeout
 globalThis.getComputedStyle=dom.window.getComputedStyle.bind(dom.window)
@@ -23,9 +23,9 @@ HTMLElement.prototype.getBoundingClientRect=function(){
 const {createRoot}=await import('react-dom/client')
 const h=React.createElement,container=document.getElementById('test'),root=createRoot(container)
 try{
- writeFileSync(dir+'/entry.ts','export {RealtimeContext,CollaborativeFields} from "../src/realtime"; export {useRemoteDraft} from "../src/remote-draft"; export {default as RichEditor} from "../src/rich-editor";')
+ writeFileSync(dir+'/entry.ts','export {RealtimeContext,CollaborativeFields} from "../src/realtime"; export {useRemoteDraft} from "../src/remote-draft"; export {default as RichEditor} from "../src/rich-editor"; export {registerRichSelection} from "../src/cursor-position";')
  await build({entryPoints:[dir+'/entry.ts'],outfile:dir+'/bundle.mjs',bundle:true,platform:'node',format:'esm',packages:'external',loader:{'.css':'empty'},jsx:'automatic',logLevel:'silent',plugins:[{name:'ignore-css',setup(build){build.onResolve({filter:/\.css$/},args=>({path:args.path,namespace:'empty-css'}));build.onLoad({filter:/.*/,namespace:'empty-css'},()=>({contents:'',loader:'js'}))}}]})
- const {RealtimeContext,CollaborativeFields,useRemoteDraft,RichEditor}=await import(pathToFileURL(dir+'/bundle.mjs'))
+ const {RealtimeContext,CollaborativeFields,useRemoteDraft,RichEditor,registerRichSelection}=await import(pathToFileURL(dir+'/bundle.mjs'))
  const people=[{id:'a',connection_id:'tab-a',name:'Member A',color:'#2563eb',section:'events',resource_id:'doc',field:'Title:0',interacted_at:1,editing:true},{id:'b',connection_id:'tab-b',name:'Member B',color:'#d97706',section:'events',resource_id:'doc',field:'Title:0',interacted_at:2,editing:true}]
  const located=[]
  const showFields=members=>root.render(h(RealtimeContext.Provider,{value:{people:members,userId:'a',connected:true,locate:value=>located.push(value),sendDraft:()=>{}}},h('div',{className:'workspace'},h('form',{className:'editor'},h('label',null,'Title',h('input',{'aria-label':'Title',style:{borderBottomRightRadius:'6px'}}))),h(CollaborativeFields,{section:'events',resourceId:'doc'}))))
@@ -47,6 +47,16 @@ try{
  await act(async()=>window.dispatchEvent(new window.Event('resize')))
  assert.equal(frame.style.width,'228px','the outer stroke tracks responsive field resizing')
  assert.equal(frame.querySelector('svg').getAttribute('height'),'92')
+ const titleInput=document.querySelector('input'),releaseSelection=registerRichSelection(titleInput,{read:()=>({anchor:3,head:3,type:'rich'}),rect:()=>({left:52,top:58,bottom:76})})
+ const signal={kind:'caret',section:'events',resource_id:'doc',field:'Title:0',selection:{anchor:3,head:3,type:'rich'},connection_id:'tab-b',actor_id:'b',name:'Member B',color:'#d97706',at:Date.now()}
+ await act(async()=>window.dispatchEvent(new CustomEvent('gcf:cursor',{detail:signal})))
+ assert.equal(document.querySelector('.collaboration-cursor.caret').style.left,'32px')
+ assert.equal(document.querySelector('.collaboration-cursor.caret').style.getPropertyValue('--cursor-color'),'#d97706')
+ await act(async()=>titleInput.dispatchEvent(new window.MouseEvent('pointermove',{bubbles:true,clientX:53,clientY:63})))
+ assert.ok(document.querySelector('.collaboration-cursor.caret.show-name'),'hovering the caret reveals its name')
+ assert.equal(document.querySelector('.collaboration-cursor-name').textContent,'Member B')
+ assert.equal(titleInput.style.caretColor,'rgb(37, 99, 235)','local caret uses the current account color')
+ releaseSelection()
  await act(async()=>{document.querySelector('input').focus();document.querySelector('input').blur()})
  assert.equal(located.at(-1).field,'Title:0','switching window focus must not clear the field indicator')
  await act(async()=>document.body.dispatchEvent(new window.Event('pointerdown',{bubbles:true})))
@@ -80,11 +90,13 @@ try{
  assert.match(document.querySelector('.remote-conflicts').textContent,/Another editor/)
  assert.equal(document.querySelector('[data-draft]').textContent,'Changed again')
  const liveSent=[]
- function LiveProbe(){const [draft,setDraft]=useState({id:'live',summary:'A story',updated_at:'v1'}),[snapshot,setSnapshot]=useState(JSON.stringify({id:'live',summary:'A story',updated_at:'v1'}));const remote=useRemoteDraft('events',draft,setDraft,snapshot,setSnapshot);return h('div',{className:'configuration-panel'},h('output',null,draft.summary),h('button',{onClick:()=>setDraft(d=>({...d,summary:'New '+d.summary}))},'Edit'),remote.panel)}
+ function LiveProbe(){const [draft,setDraft]=useState({id:'live',summary:'A story',updated_at:'v1'}),[snapshot,setSnapshot]=useState(JSON.stringify({id:'live',summary:'A story',updated_at:'v1'}));const remote=useRemoteDraft('events',draft,setDraft,snapshot,setSnapshot);return h('div',{className:'configuration-panel'},h('output',null,draft.summary),h('input',{'aria-label':'Live value',value:draft.summary,onChange:e=>setDraft(d=>({...d,summary:e.target.value}))}),h('button',{onClick:()=>setDraft(d=>({...d,summary:'New '+d.summary}))},'Edit'),remote.panel)}
  await act(async()=>root.render(h(RealtimeContext.Provider,{value:{people,userId:'a',connected:true,locate:()=>{},sendDraft:p=>liveSent.push(p)}},h(LiveProbe))))
+ const liveInput=document.querySelector('input');liveInput.focus();liveInput.setSelectionRange(3,3)
  const liveUpdate=value=>window.dispatchEvent(new CustomEvent('gcf:draft',{detail:{kind:'events',id:'live',connection_id:'tab-b',actor_id:'b',name:'Member B',fields:{summary:value},base_fields:{summary:'A story'}}}))
  await act(async()=>{liveUpdate('A story today');await new Promise(r=>setTimeout(r,140))})
  assert.equal(document.querySelector('output').textContent,'A story today','unsaved changes appear immediately')
+ assert.equal(liveInput.selectionStart,3,'live updates preserve the local caret')
  assert.equal(document.querySelector('.remote-conflicts'),null)
  assert.deepEqual(liveSent.at(-1).fields,{},'received fields do not echo back as local edits')
  await act(async()=>liveUpdate('A story today!'))
@@ -92,6 +104,10 @@ try{
  await act(async()=>document.querySelector('button').click())
  await act(async()=>liveUpdate('A story today!!'))
  assert.equal(document.querySelector('output').textContent,'New A story today!!','compatible local and remote typing merge')
+ await act(async()=>{document.dispatchEvent(new window.Event('compositionstart'));liveUpdate('A story today!!!')})
+ assert.equal(document.querySelector('output').textContent,'New A story today!!','incoming changes wait for text composition')
+ await act(async()=>{document.dispatchEvent(new window.Event('compositionend'));await new Promise(r=>setTimeout(r,15))})
+ assert.equal(document.querySelector('output').textContent,'New A story today!!!')
  assert.equal(document.querySelector('.remote-conflicts'),null)
  await act(async()=>root.render(h(RichEditor,{label:'Story',value:'gcf-richtext:'+JSON.stringify({type:'doc',content:[{type:'gcfFigure',attrs:{mediaId:'a'.repeat(32),alt:'GCF',widthPercent:40},content:[{type:'text',text:'Saved caption'}]},{type:'paragraph'}]}),onChange:()=>{}})))
  assert.ok(document.querySelector('.figure-reference'),'editor renders a compact image reference')

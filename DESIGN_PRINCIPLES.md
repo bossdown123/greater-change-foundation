@@ -175,3 +175,5 @@ not a repeated warning on every image.
 - Field presence uses one continuous 2 px outline outside the input, joined to a bottom-right overlay with a concave left join and continuous right edge. Stack editor names vertically without reserving layout space. Each editor row retains its own account-colored background; only the outer outline follows the most recent editor. Do not layer duplicate input, focus, and presence borders.
 
 - When a person leaves a field, collapse only their name row into a 4 px account-colored dot at the field’s bottom-right. Keep active people expanded, retain inactive identities as recent presence, and treat a rich-text editor and its formatting controls as one field.
+
+- Apply unsaved remote changes directly to untouched fields and the preview. Merge compatible text edits, preserve local caret/selection and text composition, and retain explicit conflicts for overlapping edits. Live receipt is not a saved-state confirmation. Show account-colored remote pointers and text carets; hovering near them reveals the name sliding rightward on a lighter tint of that account color.
