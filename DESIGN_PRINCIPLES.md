@@ -135,8 +135,17 @@ Resolve violations by simplifying the design, not by adding another container.
 
 ## Administration workspace
 
-The user selected a shadcn left sidebar with two resizable work panels: the
-configuration/details editor in the middle, and the live generated output
-preview on the right. Keep this structure. On phones, use the sidebar drawer
-and Edit/Preview views so both work areas remain usable. The sidebar is
-navigation, not one of the two resizable work panels.
+The user selected a shadcn left navigation sidebar, a primary work area, and a
+resizable right inspector/preview. Search and the primary section action belong
+in the workspace header. The right panel opens only when relevant content is
+selected; closing it restores the full work area. Do not reserve an empty preview
+panel while browsing. On phones, use the sidebar drawer and Edit/Preview views
+when an inspector is open. The left sidebar is navigation, not a work panel.
+
+The shared image library is a photo-led, responsive masonry surface. Preserve
+portrait and landscape proportions; avoid uniform cropped cards or repeated
+captions and missing-description warnings beneath every photo. Image metadata,
+caption and accessibility editing belong in the selected image's inspector.
+Use real checkbox state and a visible outline for selection, with accessible
+names on icon controls. Keep the selected image, search, page, and scroll position
+when opening and closing details. Reflow as the work area is resized.

@@ -98,7 +98,7 @@ The previous image references are retained in the server's `.env.previous`.
 ## Administration
 
 `/admin` provides a password-protected workspace with a shadcn left sidebar,
-a resizable configuration panel, and a live output-preview panel. Phones use
+a work area with header search and a resizable inspector that opens on selection. Phones use
 Edit/Preview views and drawer navigation. The five sections are:
 
 - **Events:** title, story, multiple dates and locations, participant count,

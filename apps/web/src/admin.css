@@ -38,3 +38,22 @@
 
 @media(max-width:767px){.pager .page-count{flex-basis:100%;margin-bottom:8px}.pager [data-slot=button]{width:32px}.pager{justify-content:center}}
 .password-input{position:relative;display:block;width:100%}.password-input input{padding-right:40px!important}.password-input button{position:absolute;right:2px;top:2px;bottom:2px;width:36px;display:grid;place-items:center;color:#85858f;background:transparent;border:0;cursor:pointer}.admin-app .inline-check{flex-direction:row;align-items:center;gap:9px}.history-filters{padding:10px 0 16px;font-size:12px;color:#71717a}.history-filters summary{cursor:pointer}.history-filter-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}.history-list [data-selected=true]{background:#eef3ef}.history-list strong span{display:inline;font-weight:400}.audit-preview h1{font-size:24px}.audit-preview>p{font-size:13px;margin:12px 0 4px}.audit-preview>time{font-size:11px;color:#71717a}.audit-preview details{margin:24px 0;border-top:1px solid #ddd;padding-top:15px}.audit-preview summary{font-size:12px;cursor:pointer}.audit-preview table{table-layout:fixed;border-collapse:collapse;width:100%;font-size:11px;margin-top:16px;text-align:left}.audit-preview th,.audit-preview td{vertical-align:top;border-bottom:1px solid #e4e4e7;padding:10px 8px;overflow-wrap:anywhere;white-space:pre-wrap;max-height:250px}.audit-preview th{font-weight:500;color:#71717a}.audit-preview th:first-child{width:25%}
+/* The library owns the workspace until a selection needs an inspector. */
+.workspace-header{height:62px;min-height:62px;padding:0 24px;gap:16px;background:#fff}
+.header-search{flex:1;max-width:560px;min-width:0}.header-search .search{margin:0}.header-search input{max-width:none}
+.header-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.header-actions .search{display:none}.header-actions [data-slot=button],.header-actions .icon-upload{height:36px;min-height:36px;width:36px;flex:none}
+.workspace-panels{flex:1;min-height:0}.close-inspector{margin-left:auto}.publication-status+.close-inspector{margin-left:0}
+.output-panel .panel-title:has(.publication-status){justify-content:flex-start}.output-panel .publication-status{margin-left:auto}
+.masonry-photo{position:relative;width:100%;overflow:hidden;background:#ececee;border-radius:3px}
+.masonry-photo[data-selected=true]{outline:3px solid #355c43;outline-offset:-3px}
+.masonry-open{border:0;margin:0;padding:0;display:block;width:100%;height:100%;background:transparent;cursor:pointer}
+.masonry-open img{display:block;width:100%;height:100%;object-fit:contain;transition:filter .16s ease}
+.masonry-open:hover img{filter:brightness(.95)}.masonry-open:focus-visible{outline:3px solid #345940;outline-offset:-4px}
+.masonry-check{position:absolute;top:7px;right:7px;display:grid!important;place-items:center;width:34px;height:34px;cursor:pointer}
+.admin-app .masonry-check input{width:24px;height:24px;appearance:none;border:2px solid #fff;background:#2225;border-radius:50%;box-shadow:0 1px 5px #0005;cursor:pointer}
+.masonry-check input:checked{background:#355c43}.masonry-check svg{position:absolute;pointer-events:none;color:white}
+.masonry-inspect{position:absolute;left:9px;top:9px;border:0;width:30px;height:30px;background:#fffe;color:#383b38;border-radius:50%;display:grid;place-items:center;cursor:pointer}
+.masonry-loading{min-height:360px;column-count:3;column-gap:10px}.masonry-loading span{display:block;background:#f0f0f2;margin-bottom:10px;break-inside:avoid;border-radius:3px}
+.image-inspector{padding:24px}.inspector-image{display:block;width:100%;max-height:36vh;object-fit:contain;margin-bottom:24px}.image-inspector form{display:flex;flex-direction:column;gap:20px}.image-inspector form>[data-slot=button]{align-self:flex-start}.image-file-details{font-size:11px;color:#7a7a84;padding-top:18px;border-top:1px solid #e1e1e6}.image-file-details summary{overflow-wrap:anywhere;cursor:pointer}.image-file-details a{display:inline-flex;align-items:center;gap:5px}.image-file-details p,.image-file-details ul{margin:12px 0}
+@media(max-width:767px){.workspace-header{padding:0 16px;height:60px;min-height:60px;gap:10px}.header-actions{gap:4px}.header-search input{font-size:14px!important;min-height:38px!important}.masonry-loading{column-count:2}.header-actions .icon-upload{width:38px;height:38px;min-height:38px}.image-inspector{padding:20px}}
