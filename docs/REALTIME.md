@@ -11,3 +11,9 @@ Sidebar indicators use saved account colors, 4 px circles, 4 px gaps, and bottom
 `user_colors(user_id PK/FK users, color)` stores one independent presentation fact per account. The only nontrivial functional dependency is `user_id -> color`; it satisfies 3NF/BCNF and is an irreducible unary fact relation suitable for 6NF. Color need not be unique: different people may share a palette color, so names remain authoritative. Existing users are backfilled deterministically. New account creation inserts the color in the same audited transaction. Guards prevent untracked writes and changes appear in the immutable scalar audit history.
 
 Sqitch deploy/revert/verify covers the color relation. Revert drops only colors and returns schema version 5; accounts, content and audit history survive. Deployments back up database and Sqitch state first.
+
+## Five-minute autosave
+
+Events, initiatives, campaigns, newsletters and image descriptions save automatically five minutes after they become dirty. Additional typing does not postpone the deadline. Clean records do not write or generate audit entries. A successful manual save satisfies the pending deadline. Saves use the existing authenticated Ash endpoint and revision guard.
+
+Manual and automatic requests share a lock. The response only acknowledges the submitted snapshot; text entered while the request runs stays in the draft for the next save. Remote updates are deferred during a save to avoid treating the acknowledgement as a conflicting edit. Unresolved conflicts, an active request, a disconnected channel or an offline browser pause autosave. Browser timers may be suspended in the background; focus, visibility and reconnection recheck any overdue deadline. Existing leave-with-unsaved-changes checks remain.

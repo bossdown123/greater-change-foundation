@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import { MasonryPhotoAlbum, type Photo } from "react-photo-album"
 import { Check, Expand, ExternalLink, ImageOff, Upload, CalendarDays, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -6,6 +6,8 @@ import { CollectionToolbar } from "./admin-layout"
 import { api, errorText, Message, usePage, LoadMoreBoundary, SearchField, RichEditor, PreviewContext, type Media } from "./admin"
 import { GalleryTimeline, isoDay, type CaptureFilter, type MetadataSummary } from "./gallery-timeline"
 import { useChangeVersion, PresenceDots } from "./realtime"
+import { useAutosave } from "./use-autosave"
+import { mergeDraft } from "./merge-draft"
 import { useRemoteDraft } from "./remote-draft"
 import "react-photo-album/masonry.css"
 
@@ -43,8 +45,9 @@ export function Gallery({selected,onPick,onCancel}:{selected?:string[];onPick?:(
 export function ImageInspector({image,onClose,onSaved}:{image:Media;onClose:()=>void;onSaved?:()=>void}){
  const [draft,setDraft]=useState(image),[snapshot,setSnapshot]=useState(JSON.stringify(image)),
  [alt,setAlt]=[draft.alt,(alt:string)=>setDraft(d=>({...d,alt}))],[caption,setCaption]=[draft.caption,(caption:string)=>setDraft(d=>({...d,caption}))],[error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false)
- const remote=useRemoteDraft("media",draft,setDraft,snapshot,setSnapshot)
- async function save(e:React.FormEvent){e.preventDefault();if(remote.blocked)return;setBusy(true);try{const saved=await api<Media>(`/media/${image.id}`,"PATCH",{alt,caption,updated_at:draft.updated_at});setDraft(saved);setSnapshot(JSON.stringify(saved));setNotice("Saved");setError("");onSaved?.()}catch(e){setError(errorText(e))}finally{setBusy(false)}}
+ const remote=useRemoteDraft("media",draft,setDraft,snapshot,setSnapshot,busy)
+ const saving=useRef(false),autosave=useAutosave({recordKey:`media/${draft.id}`,dirty:JSON.stringify(draft)!==snapshot,blocked:remote.blocked,busy,save:()=>save(undefined,true)})
+ async function save(e?:React.FormEvent,automatic=false){e?.preventDefault();if(remote.blocked||saving.current)return;saving.current=true;const submitted=structuredClone(draft);setBusy(true);try{const saved=await api<Media>(`/media/${image.id}`,"PATCH",{alt:submitted.alt,caption:submitted.caption,updated_at:submitted.updated_at});setDraft(current=>mergeDraft(submitted,current,saved).next);setSnapshot(JSON.stringify(saved));autosave.saved();setNotice(automatic?"Saved automatically.":"Saved");setError("");onSaved?.()}catch(e){setError(errorText(e))}finally{saving.current=false;setBusy(false)}}
  async function remove(){if(!confirm("Permanently delete this image from the library?"))return;try{await api(`/media/${image.id}`,"DELETE");onSaved?.();onClose()}catch(e){setError(errorText(e))}}
  const meta=draft.metadata
  const capture=meta?.local_datetime?new Intl.DateTimeFormat(undefined,{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"}).format(new Date(meta.local_datetime+"Z")):null

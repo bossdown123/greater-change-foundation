@@ -49,3 +49,5 @@ design or interaction decisions. Its requirements include:
 - Never add refresh or reload buttons anywhere on the website. Keep saved data current automatically through authenticated Phoenix Channels and PubSub. Preserve drafts when remote changes arrive.
 - Keep gallery search, date range, slider, filters and actions on one compact row; allow horizontal scrolling on narrow screens.
 - Assign each account a persistent presence color. Show who is editing which item. Sidebar presence dots are 4 px circles, anchored at the bottom-right, right-aligned and extending left with even spacing. Deduplicate multiple tabs per person; provide accessible names and activity details, never color alone.
+
+- Automatically save changed content drafts every five minutes. Do not postpone the deadline on each keystroke or write unchanged drafts. Serialize manual and automatic saves, preserve typing made during a request, and pause autosave for unresolved conflicts or disconnected sessions.

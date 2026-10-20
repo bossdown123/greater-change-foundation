@@ -14,3 +14,12 @@ assert.deepEqual(merged.conflicts,[{field:'title',mine:'My title',theirs:'Their 
 assert.equal(mergeDraft(base,local,{...remote,title:'My title'}).conflicts.length,0)
 assert.equal(mergeDraft(base,{...local,dates:[]},{...remote,dates:['2027-01-01']}).conflicts[0].field,'dates')
 console.log('PASS: non-overlapping merge, local typing preserved, conflict detection, matching saves, repeating dates')
+
+const submitted={...base,title:'First edit'}
+const typedDuringSave={...submitted,title:'Newer typing',summary:'Still working'}
+const acknowledged={...submitted,updated_at:'saved-time'}
+const afterSave=mergeDraft(submitted,typedDuringSave,acknowledged).next
+assert.equal(afterSave.title,'Newer typing')
+assert.equal(afterSave.summary,'Still working')
+assert.equal(afterSave.updated_at,'saved-time')
+assert.notDeepEqual(afterSave,acknowledged,'in-flight typing stays dirty after the save acknowledgement')
