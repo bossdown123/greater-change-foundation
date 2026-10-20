@@ -86,10 +86,11 @@ function FieldPresenceFrame({element,label,field,editors,color}:{element:HTMLEle
  const clipId=useId(),badge=useRef<HTMLSpanElement>(null)
  const active=editors.filter(person=>person.field_active!==false),recent=editors.filter(person=>person.field_active===false)
  const descriptionId=`field-presence-${field.replace(/[^a-z0-9]/gi,"-")}`
- const [box,setBox]=useState({left:0,top:0,width:0,height:0}),[tab,setTab]=useState({width:0,height:0})
+ const [box,setBox]=useState({left:0,top:0,width:0,height:0}),[tab,setTab]=useState({width:0,height:0}),[cornerRadius,setCornerRadius]=useState(6)
  useLayoutEffect(()=>{
   const measure=()=>{
    const rect=element.getBoundingClientRect(),parent=label.getBoundingClientRect()
+   setCornerRadius(Number.parseFloat(getComputedStyle(element).borderBottomRightRadius)||0)
    // Leave a 2px gap between the native field and the outer 2px presence stroke.
    const next={left:rect.left-parent.left+label.scrollLeft-4,top:rect.top-parent.top+label.scrollTop-4,width:rect.width+8,height:rect.height+8}
    setBox(old=>JSON.stringify(old)===JSON.stringify(next)?old:next)
@@ -98,11 +99,11 @@ function FieldPresenceFrame({element,label,field,editors,color}:{element:HTMLEle
   measure();const resize=new ResizeObserver(measure);resize.observe(element);resize.observe(label);if(badge.current)resize.observe(badge.current)
   window.addEventListener("resize",measure);return()=>{resize.disconnect();window.removeEventListener("resize",measure)}
  },[element,label,active.length])
- const shape=fieldPresenceShape(box.width,box.height,tab.width,tab.height)
+ const shape=fieldPresenceShape(box.width,box.height,tab.width,tab.height,cornerRadius)
  return <span className="field-presence-frame" style={{...box,"--editor-color":color} as React.CSSProperties}>
   <svg className="field-presence-outline" width={box.width} height={box.height+tab.height} aria-hidden="true">
    <defs><clipPath id={clipId}><path d={shape.tab}/></clipPath></defs>
-   <g clipPath={`url(#${clipId})`}>{active.map((person,index)=><rect key={person.id} className="field-presence-member-fill" x="0" y={box.height-1+index*tab.height/active.length} width={box.width} height={tab.height/active.length} style={{"--member-color":person.color} as React.CSSProperties}/>)}</g>
+   <g clipPath={`url(#${clipId})`}>{active.map((person,index)=><rect key={person.id} className="field-presence-member-fill" x="0" y={index===0?0:box.height-1+index*tab.height/active.length} width={box.width} height={tab.height/active.length+(index===0?box.height-1:0)} style={{"--member-color":person.color} as React.CSSProperties}/>)}</g>
    <path className="field-presence-stroke" d={shape.outline} fill="none" strokeWidth="2"/>
   </svg>
   <span id={descriptionId} className="sr-only">{editors.map(p=>`${p.name} ${p.field_active===false?"was recently active here":"is in this field"}`).join("; ")}</span>

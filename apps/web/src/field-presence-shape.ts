@@ -1,11 +1,16 @@
 // A single outside perimeter avoids doubled strokes at the attached editor tab.
-export function fieldPresenceShape(width:number,height:number,tabWidth:number,tabHeight:number){
+export function fieldPresenceShape(width:number,height:number,tabWidth:number,tabHeight:number,inputRadius=6){
  if(width<20||height<4)return {outline:"",tab:""}
  const l=1,t=1,r=width-1,b=height-1,bottom=b+tabHeight
  const radius=Math.min(8,(height-2)/2),join=Math.min(6,tabHeight/2)
  if(tabWidth<1||tabHeight<1)return {outline:`M ${l+radius} ${t} H ${r-radius} Q ${r} ${t} ${r} ${t+radius} V ${b-radius} Q ${r} ${b} ${r-radius} ${b} H ${l+radius} Q ${l} ${b} ${l} ${b-radius} V ${t+radius} Q ${l} ${t} ${l+radius} ${t} Z`,tab:""}
  const x=Math.max(l+radius+join,r-tabWidth)
- const tab=`M ${x-join} ${b} Q ${x} ${b} ${x} ${b+join} V ${bottom-join} Q ${x} ${bottom} ${x+join} ${bottom} H ${r-join} Q ${r} ${bottom} ${r} ${bottom-join} V ${b} Z`
+ // Lift the fill two pixels and trace one pixel outside the native rounded corner.
+ // The extra contour joins the tab fill without changing its outside 2px stroke.
+ const corner=Math.max(0,Math.min(inputRadius,(height-8)/2,(width-8)/2))
+ const cx=width-4-corner,cy=height-4-corner,outerCorner=corner+1
+ const shoulder=`M ${x} ${b+join} H ${r} V ${cy} H ${cx+outerCorner} A ${outerCorner} ${outerCorner} 0 0 1 ${cx} ${b-2} H ${x} Z`
+ const tab=`M ${x-join} ${b} Q ${x} ${b} ${x} ${b+join} V ${bottom-join} Q ${x} ${bottom} ${x+join} ${bottom} H ${r-join} Q ${r} ${bottom} ${r} ${bottom-join} V ${b} Z ${shoulder}`
  const outline=`M ${l+radius} ${t} H ${r-radius} Q ${r} ${t} ${r} ${t+radius} V ${bottom-join} Q ${r} ${bottom} ${r-join} ${bottom} H ${x+join} Q ${x} ${bottom} ${x} ${bottom-join} V ${b+join} Q ${x} ${b} ${x-join} ${b} H ${l+radius} Q ${l} ${b} ${l} ${b-radius} V ${t+radius} Q ${l} ${t} ${l+radius} ${t} Z`
  return {outline,tab}
 }

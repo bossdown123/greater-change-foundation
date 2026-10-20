@@ -28,7 +28,7 @@ try{
  const {RealtimeContext,CollaborativeFields,useRemoteDraft,RichEditor}=await import(pathToFileURL(dir+'/bundle.mjs'))
  const people=[{id:'a',connection_id:'tab-a',name:'Member A',color:'#2563eb',section:'events',resource_id:'doc',field:'Title:0',interacted_at:1,editing:true},{id:'b',connection_id:'tab-b',name:'Member B',color:'#d97706',section:'events',resource_id:'doc',field:'Title:0',interacted_at:2,editing:true}]
  const located=[]
- const showFields=members=>root.render(h(RealtimeContext.Provider,{value:{people:members,userId:'a',connected:true,locate:value=>located.push(value),sendDraft:()=>{}}},h('div',{className:'workspace'},h('form',{className:'editor'},h('label',null,'Title',h('input',{'aria-label':'Title'}))),h(CollaborativeFields,{section:'events',resourceId:'doc'}))))
+ const showFields=members=>root.render(h(RealtimeContext.Provider,{value:{people:members,userId:'a',connected:true,locate:value=>located.push(value),sendDraft:()=>{}}},h('div',{className:'workspace'},h('form',{className:'editor'},h('label',null,'Title',h('input',{'aria-label':'Title',style:{borderBottomRightRadius:'6px'}}))),h(CollaborativeFields,{section:'events',resourceId:'doc'}))))
  await act(async()=>showFields(people))
  const frame=document.querySelector('.field-presence-frame')
  assert.ok(frame,'the visible field frame is mounted')
@@ -40,6 +40,8 @@ try{
  assert.equal(frame.style.width,'408px')
  assert.equal(frame.querySelectorAll('.field-presence-stroke').length,1,'only one path owns the entire border')
  assert.equal(frame.querySelector('.field-presence-stroke').getAttribute('stroke-width'),'2')
+ assert.match(frame.querySelector('clipPath path').getAttribute('d'),/A 7 7 0 0 1 398 45/,'background follows the input corner, raised two pixels above the outer baseline')
+ assert.equal(frame.querySelector('.field-presence-member-fill').getAttribute('y'),'0','the first editor background reaches the lifted corner contour')
  assert.match(frame.querySelector('.field-presence-stroke').getAttribute('d'),/V 53 Q 297 47 291 47/,'the left tab join rounds inward')
  fieldWidth=220
  await act(async()=>window.dispatchEvent(new window.Event('resize')))
