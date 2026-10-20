@@ -1,6 +1,6 @@
 defmodule Gcf.Admin.Drafts do
   alias Gcf.Admin.{Content, Mutation}
-  @kinds ~w(events initiatives campaigns newsletters articles)
+  @kinds ~w(events initiatives campaigns newsletters articles media_groups)
   def create(%{"collection" => kind, "draft_id" => id}, actor)
       when kind in @kinds and is_binary(id) do
     if Regex.match?(~r/^[a-f0-9]{32}$/, id) do
@@ -48,6 +48,7 @@ defmodule Gcf.Admin.Drafts do
     end
   end
 
+  defp title("media_groups"), do: "Untitled collection"
   defp title("events"), do: "Untitled activity"
   defp title("initiatives"), do: "Untitled campaign"
   defp title("campaigns"), do: "Untitled fundraiser"

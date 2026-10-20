@@ -2,7 +2,7 @@ defmodule GcfWeb.WorkspaceChannel do
   use Phoenix.Channel
   alias GcfWeb.Presence
 
-  @sections ~w(work articles events initiatives campaigns newsletters media history people account)
+  @sections ~w(work articles events initiatives campaigns newsletters media media_groups history people account)
   @impl true
   def join("admin:workspace", _params, socket) do
     send(self(), :after_join)
@@ -51,13 +51,13 @@ defmodule GcfWeb.WorkspaceChannel do
 
   def handle_in("draft", params, socket) do
     allowed =
-      ~w(title summary dates locations participants funds_raised currency custom_fields media_ids initiative_ids campaign_ids event_ids target raised starts_on ends_on subject introduction body updates alt caption)
+      ~w(title summary dates locations participants funds_raised currency custom_fields media_ids group_ids initiative_ids campaign_ids event_ids target raised starts_on ends_on subject introduction body updates alt caption)
 
     fields = params["fields"]
     base_fields = params["base_fields"] || %{}
 
     valid =
-      params["kind"] in ~w(articles events initiatives campaigns newsletters media) and
+      params["kind"] in ~w(articles events initiatives campaigns newsletters media media_groups) and
         is_binary(params["id"]) and Regex.match?(~r/^[a-f0-9]{32}$/, params["id"]) and
         is_map(fields) and map_size(fields) <= 30 and
         Enum.all?(Map.keys(fields), &(&1 in allowed)) and

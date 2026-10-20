@@ -91,7 +91,7 @@ defmodule Gcf.Admin.Mutation do
           context_statement =
             cond do
               c.create_only and
-                  c.resource_type in ~w(events initiatives campaigns newsletters articles) ->
+                  c.resource_type in ~w(events initiatives campaigns newsletters articles media_groups) ->
                 table =
                   if c.resource_type in ~w(newsletters articles),
                     do: "publications",

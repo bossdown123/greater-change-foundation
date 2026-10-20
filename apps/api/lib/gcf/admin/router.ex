@@ -104,7 +104,14 @@ defmodule Gcf.Admin.Router do
   end
 
   post "/drafts/:collection"
-       when collection in ["events", "initiatives", "campaigns", "newsletters", "articles"] do
+       when collection in [
+              "events",
+              "initiatives",
+              "campaigns",
+              "newsletters",
+              "articles",
+              "media_groups"
+            ] do
     action(conn, "create_draft", %{
       "collection" => collection,
       "draft_id" => conn.body_params["draft_id"]

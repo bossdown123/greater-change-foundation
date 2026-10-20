@@ -1,3 +1,4 @@
+import allGalleries from './galleries.json'
 export const contactEmail = 'greaterchangefoundation@outlook.com'
 export const siteOrigin = 'https://greaterchangefoundation.org'
 export const mission = 'To positively impact lives and encourage a deeper appreciation for life itself.'
@@ -28,9 +29,16 @@ export const stories: Story[] = [
 ]
 export const storyPath = (story: Story) => `/our-work/${story.slug}`
 export const imagePath = (photo: Photograph, small = false) => `/assets/stories/${photo.file}${small ? '-800' : ''}.webp`
-export const publicPaths = ['/', '/our-work', '/updates', '/about', '/support', '/privacy', ...stories.map(storyPath)]
+export const publicPaths = ['/', '/our-work', '/updates', '/about', '/support', '/privacy', ...stories.map(storyPath), ...stories.map(story => `/galleries/${story.slug}`)]
 export function pageMeta(path: string) {
- const story = stories.find(s => storyPath(s) === path)
+ const story = stories.find(s => storyPath(s) === path || `/galleries/${s.slug}` === path)
  const titles: Record<string,string> = { '/': 'Small acts. Greater change.', '/our-work': 'Our work', '/updates': 'Updates', '/about': 'About us', '/support': 'Be part of the change', '/privacy': 'Your privacy' }
- return { title: `${story?.title || titles[path] || 'Page not found'} | Greater Change Foundation`, description: story?.intro || 'People, purpose and community. Discover the work of the Greater Change Foundation and find out how to get involved.', image: imagePath(story?.photos[0] || stories[0].photos[0]) }
+ return { title: `${path.startsWith("/galleries/") ? "Gallery: " : ""}${story?.title || titles[path] || 'Page not found'} | Greater Change Foundation`, description: story?.intro || 'People, purpose and community. Discover the work of the Greater Change Foundation and find out how to get involved.', image: imagePath(story?.photos[0] || stories[0].photos[0]) }
 }
+
+// Inline editorial choices stay separate from the full related collection.
+export function galleryPhotos(story: Story): Photograph[] {
+ const chosen = new Set(story.photos.map(photo => photo.file))
+ return [...story.photos, ...((allGalleries as Record<string,Photograph[]>)[story.slug] || []).filter(photo => !chosen.has(photo.file))]
+}
+export const galleryThumbnail = (photo: Photograph) => `/assets/stories/${photo.file}-thumb.webp`

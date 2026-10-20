@@ -34,7 +34,11 @@ defmodule Gcf.Admin.ImageGroups do
 
     with true <- is_binary(title) and String.length(String.trim(title)) in 1..200,
          :ok <- check_ids("media", ids, 2000),
-         {:ok, id} <- if(p["id"], do: existing(p["id"]), else: {:ok, Gcf.Admin.Content.uuid()}) do
+         {:ok, id} <-
+           if(p["new_id"],
+             do: {:ok, p["new_id"]},
+             else: if(p["id"], do: existing(p["id"]), else: {:ok, Gcf.Admin.Content.uuid()})
+           ) do
       Gcf.Admin.Mutation.target("media_groups", id, title)
       now = DateTime.to_iso8601(DateTime.utc_now())
 

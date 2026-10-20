@@ -2,7 +2,11 @@
 
 The public website replaces the development placeholder at the owner's request.
 It contains Home, Our work, Updates, About us, Get involved, Privacy, and five
-photo stories. The UX agent recommended visible editorial content, straightforward
+photo stories and their photo galleries. Each story keeps two editorial images
+inline and has an Open gallery button. The gallery opens over the story with
+Previous/Next, a horizontally scrolling thumbnail strip and keyboard navigation.
+Closing returns focus and scroll position to the story. Gallery URLs remain
+shareable and open the same overlay on top of the corresponding story. The UX agent recommended visible editorial content, straightforward
 navigation, a chronological reading list, direct support contact, and an optional
 accessible enlarged photograph view. No cards, page selectors or refresh controls.
 
@@ -26,7 +30,9 @@ accessible enlarged photograph view. No cards, page selectors or refresh control
 ## Public/private boundary
 
 Public stories are an explicitly curated source collection in
-`apps/web/src/public-site/content.ts`. They do not read from the admin database,
+`apps/web/src/public-site/content.ts`. The full supplied photo sets are represented
+in `galleries.json`; inline photo choices remain independent. Public photos are
+optimized for the viewer with small, lazily loaded thumbnails. They do not read from the admin database,
 private object bucket, user accounts, audit trail or unpublished work. Website
 publishing from the admin needs a separate explicit release workflow before it
 can expose those records; creating or editing a draft must never publish it.

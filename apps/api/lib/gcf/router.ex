@@ -47,6 +47,11 @@ defmodule Gcf.Router do
     public_page(conn, "our-work--" <> slug)
   end
 
+  get "/galleries/:slug"
+      when slug in ~w(childs-month-2025 blood-drive-2024 christmas-2023 anniversary-celebration christmas-2022) do
+    public_page(conn, "galleries--" <> slug)
+  end
+
   defp public_page(conn, page) do
     conn
     |> put_resp_content_type("text/html")

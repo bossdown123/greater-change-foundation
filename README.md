@@ -1,7 +1,7 @@
 # Greater Change Foundation
 
 Public charity website and private collaborative member workspace. The public site
-includes the foundation’s purpose, community work, five photo stories, updates,
+includes the foundation’s purpose, community work, five photo stories with overlay galleries, updates,
 support enquiries and contact details. Donations are handled as email enquiries;
 no payment processor is configured. The GitHub Project stays empty for members.
 
@@ -107,7 +107,7 @@ Edit/Preview views and drawer navigation. The sections are:
   locations, financial facts and reusable photo selections stay with the source
   record and are linked rather than copied into publications.
 - **Website:** draft articles composed from shared work, rich text and images.
-- **Image library:** private uploads, image descriptions, captions, recorded
+- **Image library:** private uploads, reusable ordered photo collections, image descriptions, captions, recorded
   metadata, usage information and reusable selections. Removing a photo from a
   story does not remove its library original.
 - **Newsletters:** ordered shared work with editable opening/closing content,
@@ -124,6 +124,20 @@ for provenance, the public/private boundary and the future release workflow.
 See [the relational model](docs/DATA_MODEL.md) for normalization and migration
 requirements. `AGENTS.md` requires at least 3NF, appropriate higher normalization,
 and substantial migrations when needed to fix the data model.
+
+### Photo collections
+
+In Image library, choose **Select**, select images (or **Select shown**), then
+**Create collection**. The **Collections** view also creates empty named drafts
+and edits membership and order. Photos can belong to more than one collection;
+removing a membership never deletes the original.
+
+Content editors have **Galleries → Link collections**, with search and multiple
+selection. Collections stay linked, so changing their images updates every
+reference. The preview opens each named gallery in an overlay with arrows and a scrolling
+thumbnail strip. Individual
+activity photos have a separate Open gallery button. Public story galleries are
+curated pages; private library collections are never published automatically.
 
 ### Local harness
 

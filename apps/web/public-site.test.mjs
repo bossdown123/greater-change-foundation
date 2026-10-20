@@ -6,7 +6,7 @@ import {build} from 'esbuild'
 import {JSDOM} from 'jsdom'
 const dir=mkdtempSync(new URL('./.public-test-',import.meta.url))
 const dom=new JSDOM('<!doctype html><html><body><div id="test"></div></body></html>',{url:'http://localhost/'})
-Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,HTMLInputElement:dom.window.HTMLInputElement,Node:dom.window.Node,NodeFilter:dom.window.NodeFilter,MutationObserver:dom.window.MutationObserver,CustomEvent:dom.window.CustomEvent,Event:dom.window.Event,IS_REACT_ACT_ENVIRONMENT:true})
+Object.assign(globalThis,{window:dom.window,document:dom.window.document,history:dom.window.history,location:dom.window.location,HTMLElement:dom.window.HTMLElement,HTMLInputElement:dom.window.HTMLInputElement,Node:dom.window.Node,NodeFilter:dom.window.NodeFilter,MutationObserver:dom.window.MutationObserver,CustomEvent:dom.window.CustomEvent,Event:dom.window.Event,IS_REACT_ACT_ENVIRONMENT:true})
 globalThis.getComputedStyle=dom.window.getComputedStyle.bind(dom.window)
 globalThis.requestAnimationFrame=fn=>setTimeout(fn,0);globalThis.cancelAnimationFrame=clearTimeout
 const React=await import('react'),{act}=React,{createRoot}=await import('react-dom/client')
@@ -39,10 +39,10 @@ try {
  await act(async()=>menu.click());assert.equal(menu.getAttribute('aria-expanded'),'true')
  await act(async()=>menu.click());assert.equal(menu.getAttribute('aria-expanded'),'false')
  await show(storyPath(stories[0]))
- const opener=document.querySelector('.gcf-photo-open');opener.focus();await act(async()=>opener.click())
+ assert.equal(document.querySelectorAll('.gcf-story>figure img').length,2,'two editorial images remain inline');const opener=document.querySelector('.gcf-gallery-link a');opener.focus();await act(async()=>opener.click())
  assert.ok(document.querySelector('[role=dialog]'))
- assert.equal(document.querySelector('[role=dialog] img').alt,stories[0].photos[1].alt)
- await act(async()=>document.querySelector('.gcf-lightbox-close').click());await act(async()=>new Promise(r=>setTimeout(r,20)))
+ assert.equal(document.querySelector('.photo-viewer-image').alt,stories[0].photos[0].alt);await act(async()=>document.querySelector('[aria-label="Next photo"]').click());assert.equal(document.querySelector('.photo-viewer-image').alt,stories[0].photos[1].alt);assert.ok(document.querySelector('.photo-viewer-thumbs'));const activeThumb=document.querySelector('.photo-viewer-thumbs [aria-pressed="true"]');await act(async()=>activeThumb.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true})));assert.equal(document.querySelector('.photo-viewer-image').alt,stories[0].photos[2].alt);assert.ok(document.querySelector('.photo-viewer-caption').textContent.includes('3 of 52'))
+ await act(async()=>document.querySelector('[aria-label="Close gallery"]').click());await act(async()=>new Promise(r=>setTimeout(r,20)))
  assert.equal(document.querySelector('[role=dialog]'),null)
  assert.ok(document.activeElement===opener,'lightbox restores focus to the photograph')
  for(const path of publicPaths){

@@ -6,6 +6,7 @@ from html.parser import HTMLParser
 
 base=os.environ.get('GCF_TEST_URL','http://127.0.0.1:4000')
 paths=['/','/our-work','/updates','/about','/support','/privacy','/our-work/childs-month-2025','/our-work/blood-drive-2024','/our-work/christmas-2023','/our-work/anniversary-celebration','/our-work/christmas-2022']
+paths += ['/galleries/'+path.rsplit('/',1)[1] for path in paths if path.startswith('/our-work/')]
 class Page(HTMLParser):
  def __init__(self): super().__init__();self.headings=0;self.canonical=None;self.images=[]
  def handle_starttag(self,tag,attrs):
