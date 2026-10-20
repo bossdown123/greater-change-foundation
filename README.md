@@ -11,6 +11,13 @@ No donation flow, member accounts, charity content, issues, or project tasks are
   The project is private; add charity members through GitHub's project access settings.
 - [Website](https://greaterchangefoundation.org).
 
+## Design direction
+
+Follow the [design principles](DESIGN_PRINCIPLES.md) for future website work:
+content-led layouts, shallow markup, strongly discouraged nested cards,
+independently selected UX primitives, thoughtful progressive disclosure, joint
+mobile and desktop design, and creative use of supplied graphics.
+
 ## Run locally
 
 Install Docker and its Compose plugin, then:
