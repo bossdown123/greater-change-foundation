@@ -94,3 +94,66 @@ The previous image references are retained in the server's `.env.previous`.
 - [Ash actions](https://ash.hexdocs.pm/actions.html)
 - [Turso SQL over HTTP](https://docs.turso.tech/sdk/http/reference)
 - [Sqitch SQLite engine](https://sqitch.org/docs/manual/sqitch-engine/)
+
+## Administration
+
+`/admin` provides a password-protected workspace with three sections:
+
+- **Events:** title, story, multiple dates and locations, participant count,
+  funds raised with currency, reusable images, and typed additional facts.
+- **Image library:** private JPEG/PNG/WebP uploads (up to 32 MB each), optimized
+  thumbnails, image descriptions, captions, usage information and deletion.
+  Removing an image from an event does not delete it from the library.
+- **Newsletters:** select and order events, generate an editable draft from their
+  recorded details, then preview, copy, or export HTML/plain text. Generation is
+  deterministic; it does not invent facts or call an AI service. Email delivery,
+  subscriber management and a public blog are not enabled.
+
+The homepage remains the development placeholder. Admin records and image
+objects are private. The public repository contains no credentials or charity
+photos (only the supplied main logo used on the sign-in screen).
+
+See [the relational model](docs/DATA_MODEL.md) for normalization and migration
+requirements. `AGENTS.md` requires at least 3NF, appropriate higher normalization,
+and substantial migrations when needed to fix the data model.
+
+### Local setup
+
+Run `python3 deploy/local-secrets.py`, then `docker compose up -d --build --wait`.
+The initial local password is saved in the ignored `.admin-password` file. Open
+`http://127.0.0.1:4000/admin`. Never commit the generated `.env` or password.
+For Vite, connect it to the Compose networks and proxy `/api` to the app; the
+current development proxy uses `gcf-api-dev:4000`.
+
+The private `gcf-media` bucket uses Garage, an S3-compatible service on the
+existing server. Production assigns a 5 GB quota. Only the app connects to it;
+there is no public bucket or exposed S3 administration port. Full originals and
+smaller WebP previews persist under `/var/lib/gcf/media` on the attached volume.
+The app holds the bucket credentials and enforces authenticated access.
+
+### Production configuration and recovery
+
+The server must have `/opt/greater-change-foundation/.secrets.env` (mode 600),
+containing `GCF_SESSION_SECRET`, `GCF_ADMIN_PASSWORD_HASH`, `GARAGE_RPC_SECRET`,
+`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `GARAGE_DEFAULT_ACCESS_KEY` and
+`GARAGE_DEFAULT_SECRET_KEY`. The Garage defaults must match the S3 credentials.
+Use `deploy/local-secrets.py` to generate the format; transfer only the secret
+fields into the server file. This file survives releases and is never in Git.
+Production cookies require HTTPS; local Compose explicitly allows HTTP cookies.
+The password hash uses PBKDF2-SHA256 with a random salt and 600,000 iterations.
+
+Database backups are taken before migrations. Garage maintains metadata
+snapshots, but both its data and metadata are needed for recovery. Back up
+`/var/lib/gcf/media` together with database/registry state to a separate machine
+or external backup service; the single server and attached volume do not provide
+independent disaster recovery. Do not change Garage keys or wipe its metadata
+while retained originals are in use. Recovery must restore media metadata/data,
+Turso data, Sqitch state and matching secrets.
+
+### Verification
+
+`python3 infra/tests/normalization.py` verifies relational constraints and schema
+reversal. With the app running, `python3 infra/tests/admin_smoke.py` checks actual
+sign-in, CSRF rejection, image storage/readback, event relations, shared-image
+usage, newsletter generation/persistence and cleanup. CI runs both, in addition
+to Elixir tests, the frontend build and Sqitch's Turso deploy/revert/verify cycle.

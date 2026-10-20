@@ -11,3 +11,6 @@ deps/
 .DS_Store
 coverage/
 *.tsbuildinfo
+
+.admin-password
+.secrets.env

@@ -42,8 +42,12 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci && npm run build
         working-directory: apps/web
+      - name: Verify relational constraints
+        run: python3 infra/tests/normalization.py
       - name: Verify migrations against Turso
         run: |
+          cp .env.example .env
+          python3 deploy/local-secrets.py
           docker compose up -d database
           docker compose build migrate
           docker compose run --rm migrate deploy --verify
@@ -51,6 +55,10 @@ jobs:
           docker compose run --rm migrate deploy --verify
           docker compose run --rm migrate verify
           docker compose run --rm -e GCF_TEST_DATABASE=1 --entrypoint python3 migrate /migrations/tests/atomicity.py
+      - name: Check admin with real database and object storage
+        run: |
+          docker compose up -d --build --wait app
+          python3 infra/tests/admin_smoke.py
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: check
@@ -98,7 +106,7 @@ jobs:
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           opts=(-i ~/.ssh/gcf -o BatchMode=yes -o StrictHostKeyChecking=yes)
           ssh "${opts[@]}" root@"$DEPLOY_HOST" 'install -d -m 700 /opt/greater-change-foundation/deploy'
-          scp "${opts[@]}" deploy/compose.yaml deploy/Caddyfile deploy/release.sh root@"$DEPLOY_HOST":/opt/greater-change-foundation/deploy/
+          scp "${opts[@]}" deploy/compose.yaml deploy/Caddyfile deploy/garage.toml deploy/release.sh root@"$DEPLOY_HOST":/opt/greater-change-foundation/deploy/
           printf '%s' "$GHCR_TOKEN" | ssh "${opts[@]}" root@"$DEPLOY_HOST" 'install -d -m 700 /run/gcf-registry; docker --config /run/gcf-registry login ghcr.io -u bossdown123 --password-stdin'
           trap 'ssh "${opts[@]}" root@"$DEPLOY_HOST" "rm -rf /run/gcf-registry"' EXIT
           ssh "${opts[@]}" root@"$DEPLOY_HOST" 'DOCKER_CONFIG=/run/gcf-registry bash /opt/greater-change-foundation/deploy/release.sh ghcr.io/bossdown123/greater-change-foundation:${{ github.sha }} ghcr.io/bossdown123/greater-change-foundation-migrations:${{ github.sha }}'

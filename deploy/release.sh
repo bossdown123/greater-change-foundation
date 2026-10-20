@@ -7,7 +7,7 @@ flock -n 9 || { echo "Another GCF deployment is running" >&2; exit 1; }
 : "${2:?Provide the immutable migration image}"
 mountpoint -q /mnt/HC_Volume_106964646 || { echo "GCF data volume is not mounted" >&2; exit 1; }
 [ "$(readlink -f /var/lib/gcf)" = /mnt/HC_Volume_106964646/gcf ] || { echo "Unexpected GCF data location" >&2; exit 1; }
-install -d -m 700 /var/lib/gcf/database
+install -d -m 700 /var/lib/gcf/media /var/lib/gcf/database
 chown 666:666 /var/lib/gcf/database
 install -d -m 700 /var/lib/gcf/sqitch /var/lib/gcf/caddy/data /var/lib/gcf/caddy/config
 export GCF_IMAGE="$1" GCF_MIGRATION_IMAGE="$2"
@@ -21,7 +21,8 @@ if [ -n "$(find /var/lib/gcf/database -mindepth 1 -print -quit)" ]; then
 fi
 printf 'GCF_IMAGE=%s\nGCF_MIGRATION_IMAGE=%s\nGCF_DOMAIN=greaterchangefoundation.org\n' "$GCF_IMAGE" "$GCF_MIGRATION_IMAGE" > .env
 chmod 600 .env
-docker compose -f deploy/compose.yaml up -d --wait database
+docker compose -f deploy/compose.yaml up -d --wait database storage
 docker compose -f deploy/compose.yaml run --rm migrate deploy --verify
 docker compose -f deploy/compose.yaml up -d --wait app proxy
+docker compose exec -T storage /garage bucket set-quotas gcf-media --max-size 5G
 curl --fail --retry 12 --retry-delay 2 --retry-connrefused http://127.0.0.1:4000/readyz

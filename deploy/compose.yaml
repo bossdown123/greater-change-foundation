@@ -13,6 +13,25 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
+  storage:
+    image: dxflrs/garage:v2.4.1
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    env_file: ../.secrets.env
+    environment:
+      GARAGE_DEFAULT_BUCKET: gcf-media
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - /var/lib/gcf/media:/var/lib/garage
+    healthcheck:
+      test: ["CMD", "/garage", "bucket", "info", "gcf-media"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 12
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    networks: [database]
   migrate:
     image: ${GCF_MIGRATION_IMAGE:?Set the immutable migration image}
     environment:
@@ -25,12 +44,18 @@ services:
     networks: [database]
   app:
     image: ${GCF_IMAGE:?Set the immutable app image}
+    env_file: ../.secrets.env
     environment:
+      GCF_COOKIE_SECURE: "true"
+      S3_ENDPOINT: http://storage:3900
+      S3_BUCKET: gcf-media
       TURSO_DATABASE_URL: http://database:8080
       ERL_FLAGS: +S 2:2
     depends_on:
       migrate:
         condition: service_completed_successfully
+      storage:
+        condition: service_healthy
     restart: unless-stopped
     read_only: true
     tmpfs: [/tmp]

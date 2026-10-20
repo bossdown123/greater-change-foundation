@@ -2,6 +2,7 @@ import React from "react"
 import ReactDOM from "react-dom/client"
 import { Badge } from "@/components/ui/badge"
 import "./index.css"
+import { Admin } from "./admin"
 
 function App() {
   return (
@@ -11,4 +12,4 @@ function App() {
     </main>
   )
 }
-ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode><App /></React.StrictMode>)
+ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode>{window.location.pathname.startsWith("/admin") ? <Admin /> : <App />}</React.StrictMode>)
