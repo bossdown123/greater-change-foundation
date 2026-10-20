@@ -7,7 +7,8 @@ flock -n 9 || { echo "Another GCF deployment is running" >&2; exit 1; }
 : "${2:?Provide the immutable migration image}"
 mountpoint -q /mnt/HC_Volume_106964646 || { echo "GCF data volume is not mounted" >&2; exit 1; }
 [ "$(readlink -f /var/lib/gcf)" = /mnt/HC_Volume_106964646/gcf ] || { echo "Unexpected GCF data location" >&2; exit 1; }
-install -d -m 700 -o 666 -g 666 /var/lib/gcf/database
+install -d -m 700 /var/lib/gcf/database
+chown 666:666 /var/lib/gcf/database
 install -d -m 700 /var/lib/gcf/sqitch /var/lib/gcf/caddy/data /var/lib/gcf/caddy/config
 export GCF_IMAGE="$1" GCF_MIGRATION_IMAGE="$2"
 if [ -f .env ]; then cp .env .env.previous; fi
