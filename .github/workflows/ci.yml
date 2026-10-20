@@ -18,6 +18,12 @@ jobs:
         with:
           otp-version: '27'
           elixir-version: '1.18.4'
+      - uses: actions/cache@v4
+        with:
+          path: |
+            apps/api/deps
+            apps/api/_build
+          key: beam-${{ runner.os }}-otp27-${{ hashFiles('apps/api/mix.lock') }}
       - name: Check backend
         working-directory: apps/api
         env:

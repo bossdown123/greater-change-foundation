@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl libstdc
 WORKDIR /app
 COPY --from=build --chown=gcf:gcf /app/_build/prod/rel/gcf ./
 USER gcf
-ENV PORT=4000
+ENV PORT=4000 LANG=C.UTF-8
 EXPOSE 4000
 HEALTHCHECK --interval=20s --timeout=5s --start-period=15s CMD curl -fsS http://localhost:4000/healthz || exit 1
 CMD ["bin/gcf", "start"]
