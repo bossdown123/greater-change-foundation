@@ -43,3 +43,9 @@ design or interaction decisions. Its requirements include:
 - Database writes require the transaction-scoped audit context. Keep content changes and audit rows atomic; preserve creator attribution and update modifier attribution for direct and relational changes.
 - Keep audit history append-only and relational. Never log plaintext passwords, password hashes, session secrets, cookies or CSRF tokens.
 - Preserve account identities by disabling accounts rather than deleting them. Revoke sessions on credential, role or active-status changes.
+
+## Realtime collaboration
+
+- Never add refresh or reload buttons anywhere on the website. Keep saved data current automatically through authenticated Phoenix Channels and PubSub. Preserve drafts when remote changes arrive.
+- Keep gallery search, date range, slider, filters and actions on one compact row; allow horizontal scrolling on narrow screens.
+- Assign each account a persistent presence color. Show who is editing which item. Sidebar presence dots are 4 px circles, anchored at the bottom-right, right-aligned and extending left with even spacing. Deduplicate multiple tabs per person; provide accessible names and activity details, never color alone.

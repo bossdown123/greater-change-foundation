@@ -1,7 +1,8 @@
 defmodule Gcf.Admin.Accounts do
   alias Gcf.Database, as: DB
   alias Gcf.Admin.Mutation
-  @public "id,email,name,role,active,created_at,updated_at"
+
+  @public "id,email,name,role,active,created_at,updated_at,(SELECT color FROM user_colors WHERE user_id=users.id) AS color"
 
   def bootstrap do
     email = Application.get_env(:gcf, :admin_email, "") |> String.trim() |> String.downcase()
@@ -18,7 +19,9 @@ defmodule Gcf.Admin.Accounts do
           {"INSERT INTO actors(id,kind,label,created_at) SELECT ?,'user','',? WHERE NOT EXISTS(SELECT 1 FROM users)",
            [id, now]},
           {"INSERT INTO users(id,email,name,password_hash,role,active,session_version,created_at,updated_at) SELECT ?,?, 'Administrator',?,'administrator',1,1,?,? WHERE NOT EXISTS(SELECT 1 FROM users)",
-           [id, email, hash, now, now]}
+           [id, email, hash, now, now]},
+          {"INSERT INTO user_colors(user_id,color) SELECT ?,? WHERE EXISTS(SELECT 1 FROM users WHERE id=?)",
+           [id, color(id), id]}
         ])
       end)
     else
@@ -30,7 +33,12 @@ defmodule Gcf.Admin.Accounts do
 
   def authenticate(email, password) do
     email = if is_binary(email), do: String.downcase(String.trim(email)), else: ""
-    result = DB.execute("SELECT * FROM users WHERE email=? COLLATE NOCASE AND active=1", [email])
+
+    result =
+      DB.execute(
+        "SELECT *, (SELECT color FROM user_colors WHERE user_id=users.id) AS color FROM users WHERE email=? COLLATE NOCASE AND active=1",
+        [email]
+      )
 
     row =
       case result do
@@ -60,7 +68,7 @@ defmodule Gcf.Admin.Accounts do
 
   def session_actor(_, _), do: nil
 
-  def public(user), do: Map.take(user, ~w(id email name role active created_at updated_at))
+  def public(user), do: Map.take(user, ~w(id email name role active created_at updated_at color))
 
   def run("list_users", p, _actor) do
     Gcf.Admin.Page.fetch(
@@ -112,7 +120,8 @@ defmodule Gcf.Admin.Accounts do
           [
             {"INSERT INTO actors VALUES(?,'user','',?)", [id, now]},
             {"INSERT INTO users(id,email,name,password_hash,role,active,session_version,created_at,updated_at) VALUES(?,?,?,?,?,?,1,?,?)",
-             [id, email, name, Gcf.Admin.Auth.hash_password(password), role, active, now, now]}
+             [id, email, name, Gcf.Admin.Auth.hash_password(password), role, active, now, now]},
+            {"INSERT INTO user_colors(user_id,color) VALUES(?,?)", [id, color(id)]}
           ]
         end
 
@@ -167,6 +176,13 @@ defmodule Gcf.Admin.Accounts do
       {:ok, []} -> {:error, :not_found}
       error -> error
     end
+  end
+
+  defp color(id) do
+    Enum.at(
+      ["#2563eb", "#a855f7", "#db2777", "#d97706", "#059669", "#0891b2", "#e11d48", "#4f46e5"],
+      :erlang.phash2(id, 8)
+    )
   end
 
   defp valid_email?(email),

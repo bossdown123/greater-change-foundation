@@ -62,6 +62,12 @@ defmodule Gcf.Admin.Router do
     end
   end
 
+  get "/realtime-token" do
+    json(conn, 200, %{
+      token: GcfWeb.UserSocket.ticket(conn.assigns.actor, get_session(conn, :expires))
+    })
+  end
+
   get "/users" do
     action(conn, "list_users", conn.query_params)
   end
@@ -184,7 +190,7 @@ defmodule Gcf.Admin.Router do
         json(conn, 401, %{error: "Please sign in"}) |> halt()
 
       conn.method not in ["GET", "HEAD"] and not Auth.valid_csrf?(conn) ->
-        json(conn, 403, %{error: "Session expired. Reload and try again."}) |> halt()
+        json(conn, 403, %{error: "Session expired. Sign in again."}) |> halt()
 
       true ->
         conn

@@ -39,8 +39,8 @@ defmodule Gcf.Database do
            ]
          }
        }}
-      when version == "5" ->
-        {:ok, %{status: "ready", database: "turso", schema_version: 5}}
+      when version == "6" ->
+        {:ok, %{status: "ready", database: "turso", schema_version: 6}}
 
       _ ->
         {:error, "Database is unavailable or migrations are pending"}
@@ -56,6 +56,7 @@ defmodule Gcf.Database do
   def batch(statements, opts \\ []) do
     with {:ok, framed, prefix, suffix} <- Gcf.Admin.Mutation.frame(statements, opts),
          {:ok, results} <- perform(framed) do
+      if prefix > 0, do: Gcf.Admin.Mutation.committed()
       {:ok, results |> Enum.drop(prefix) |> Enum.take(length(results) - prefix - suffix)}
     end
   end
@@ -102,11 +103,25 @@ defmodule Gcf.Database do
              receive_timeout: 15_000,
              retry: false
            ),
-         true <- Enum.all?(result["step_errors"], &is_nil/1),
+         :ok <- check_errors(result["step_errors"]),
          results when is_list(results) <- result["step_results"] do
       {:ok, results |> Enum.drop(1) |> Enum.drop(-1) |> Enum.map(&decode/1)}
     else
+      {:error, message} -> {:error, message}
       _ -> {:error, :database_unavailable}
+    end
+  end
+
+  defp check_errors(errors) do
+    cond do
+      Enum.all?(errors, &is_nil/1) ->
+        :ok
+
+      Enum.any?(errors, &String.contains?(inspect(&1), "gcf_stale_revision")) ->
+        {:error, "Another editor saved changes. Review the updated fields before saving."}
+
+      true ->
+        {:error, :database_unavailable}
     end
   end
 

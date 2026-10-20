@@ -1,0 +1,26 @@
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react"
+import { api, errorText } from "./admin"
+import { onChange } from "./realtime"
+import { Button } from "@/components/ui/button"
+type RecordDraft={id?:string;updated_at?:string}
+type Conflict={field:string;mine:unknown;theirs:unknown}
+const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b)
+export function useRemoteDraft<T extends RecordDraft>(kind:string,draft:T,setDraft:Dispatch<SetStateAction<T>>,snapshot:string,setSnapshot:(s:string)=>void){
+ const [conflicts,setConflicts]=useState<Conflict[]>([]),[problem,setProblem]=useState("")
+ const current=useRef({draft,snapshot,setDraft,setSnapshot});current.current={draft,snapshot,setDraft,setSnapshot}
+ useEffect(()=>{
+  let active=true,timer:ReturnType<typeof setTimeout>
+  function receive(remote:T){if(!active)return;const state=current.current,base=JSON.parse(state.snapshot) as T,local=state.draft
+   const next={...remote} as T,found:Conflict[]=[]
+   for(const field of Object.keys(local) as (keyof T)[]){if(["updated_at","updated_by","modifier_name"].includes(String(field)))continue
+    if(!same(local[field],base[field])){next[field]=local[field];if(!same(remote[field],base[field])&&!same(remote[field],local[field]))found.push({field:String(field),mine:local[field],theirs:remote[field]})}
+   }
+   setConflicts(existing=>[...existing.filter(c=>!found.some(f=>f.field===c.field)),...found]);state.setDraft(next);state.setSnapshot(JSON.stringify(remote));setProblem("")
+  }
+  const stop=onChange(()=>{if(!current.current.draft.id)return;clearTimeout(timer);timer=setTimeout(()=>{void api<T>(`/${kind}/${current.current.draft.id}`).then(receive).catch(e=>{if(active)setProblem(errorText(e))})},180)})
+  return()=>{active=false;clearTimeout(timer);stop()}
+ },[kind,draft.id])
+ function resolve(conflict:Conflict,mine:boolean){if(!mine)setDraft(d=>({...d,[conflict.field]:conflict.theirs}));setConflicts(c=>c.filter(row=>row.field!==conflict.field))}
+ const blocked=conflicts.length>0||!!problem
+ return {blocked,panel:(blocked?<section className="remote-conflicts" aria-label="Changes from another editor">{problem&&<p role="alert">{problem}</p>}{conflicts.map(c=><div key={c.field}><p>Another editor changed {c.field.replaceAll("_"," ")}.</p><details><summary>Compare</summary><strong>Yours</strong><pre>{typeof c.mine==="string"?c.mine:JSON.stringify(c.mine,null,2)}</pre><strong>Theirs</strong><pre>{typeof c.theirs==="string"?c.theirs:JSON.stringify(c.theirs,null,2)}</pre></details><Button type="button" variant="outline" onClick={()=>resolve(c,true)}>Keep mine</Button><Button type="button" variant="outline" onClick={()=>resolve(c,false)}>Use theirs</Button></div>)}</section>:null)}
+}

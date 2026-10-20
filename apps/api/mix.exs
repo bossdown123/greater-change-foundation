@@ -15,6 +15,13 @@ defmodule Gcf.MixProject do
   def application, do: [extra_applications: [:logger], mod: {Gcf.Application, []}]
 
   defp deps do
-    [{:ash, "~> 3.0"}, {:bandit, "~> 1.8"}, {:req, "~> 0.5"}, {:jason, "~> 1.4"}]
+    [
+      {:ash, "~> 3.0"},
+      {:phoenix, "~> 1.8"},
+      {:phoenix_pubsub, "~> 2.1"},
+      {:bandit, "~> 1.8"},
+      {:req, "~> 0.5"},
+      {:jason, "~> 1.4"}
+    ]
   end
 end

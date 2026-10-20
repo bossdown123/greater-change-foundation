@@ -10,17 +10,14 @@ defmodule Gcf.Application do
         end
 
         [
-          {Bandit,
-           plug: Gcf.Router,
-           scheme: :http,
-           port: Application.get_env(:gcf, :port, 4000),
-           ip: {0, 0, 0, 0}}
+          GcfWeb.Endpoint
         ]
       else
         []
       end
 
-    Supervisor.start_link([Gcf.Admin.LoginThrottle | children],
+    Supervisor.start_link(
+      [{Phoenix.PubSub, name: Gcf.PubSub}, GcfWeb.Presence, Gcf.Admin.LoginThrottle | children],
       strategy: :one_for_one,
       name: Gcf.Supervisor
     )

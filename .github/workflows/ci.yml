@@ -47,6 +47,7 @@ jobs:
           python3 infra/tests/normalization.py
           python3 infra/tests/identity_audit.py
           python3 infra/tests/media_metadata.py
+          python3 infra/tests/realtime_presence.py
       - name: Verify migrations against Turso
         run: |
           cp .env.example .env
@@ -64,6 +65,7 @@ jobs:
           GCF_TEST_DATABASE=1 python3 infra/tests/admin_smoke.py
           GCF_TEST_IDENTITY=1 GCF_TEST_URL=http://127.0.0.1:4000 python3 infra/tests/account_smoke.py
           GCF_TEST_DATABASE=1 python3 infra/tests/metadata_smoke.py
+          GCF_TEST_DATABASE=1 python3 infra/tests/realtime_smoke.py
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: check

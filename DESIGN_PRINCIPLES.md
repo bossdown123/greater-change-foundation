@@ -165,3 +165,9 @@ with exact date inputs, preserve recorded local time, and keep undated images
 available. Never infer GPS/place names or replace absent capture dates with an
 upload timestamp. Missing metadata belongs in a concise summary or inspector,
 not a repeated warning on every image.
+
+## Realtime collaboration
+
+- Never add refresh or reload buttons anywhere on the website. Keep saved data current automatically through authenticated Phoenix Channels and PubSub. Preserve drafts when remote changes arrive.
+- Keep gallery search, date range, slider, filters and actions on one compact row; allow horizontal scrolling on narrow screens.
+- Assign each account a persistent presence color. Show who is editing which item. Sidebar presence dots are 4 px circles, anchored at the bottom-right, right-aligned and extending left with even spacing. Deduplicate multiple tabs per person; provide accessible names and activity details, never color alone.

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { CollectionToolbar } from "./admin-layout"
 import { api, errorText, Message, usePage, LoadMoreBoundary, SearchField } from "./admin"
 
-export type User = {id:string;email:string;name:string;role:"administrator"|"editor";active:number}
+export type User = {color?:string;id:string;email:string;name:string;role:"administrator"|"editor";active:number}
 export type AuditEntry = {id:string;actor_name:string;actor_email?:string;operation:string;resource_type:string;resource_id?:string;resource_title:string;occurred_at:string;changes?:AuditChange[]}
 type AuditChange = {id:number;table_name:string;operation:string;column_name:string;old_type:string;old_value:string|null;new_type:string;new_value:string|null}
 const words=(value:string)=>value.replaceAll("_"," ")

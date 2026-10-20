@@ -16,7 +16,12 @@ defmodule Gcf.Admin.Mutation do
       resource_type: type,
       resource_id: params["id"],
       resource_title: get_in(params, ["data", "title"]) || "",
-      occurred_at: DateTime.to_iso8601(DateTime.utc_now())
+      occurred_at: DateTime.to_iso8601(DateTime.utc_now()),
+      expected:
+        if(operation == "save",
+          do: get_in(params, ["data", "updated_at"]),
+          else: if(operation == "media_update", do: params["updated_at"])
+        )
     }
 
     Process.put(@key, context)
@@ -47,6 +52,21 @@ defmodule Gcf.Admin.Mutation do
     :ok
   end
 
+  def committed do
+    if context = Process.get(@key) do
+      if Process.whereis(Gcf.PubSub) do
+        Phoenix.PubSub.broadcast(
+          Gcf.PubSub,
+          "admin:changes",
+          {:changed,
+           Map.take(context, [:id, :actor_id, :operation, :resource_type, :resource_id])}
+        )
+      end
+    end
+
+    :ok
+  end
+
   def activity do
     case Gcf.Database.batch([{"SELECT 1", []}], audit: true) do
       {:ok, _} -> :ok
@@ -67,22 +87,38 @@ defmodule Gcf.Admin.Mutation do
           {:error, :audit_context_required}
 
         c ->
-          prefix = [
-            {"INSERT INTO audit_actions(id,actor_id,operation,resource_type,resource_id,resource_title,occurred_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
-             [
-               c.id,
-               c.actor_id,
-               c.operation,
-               c.resource_type,
-               c.resource_id,
-               c.resource_title,
-               c.occurred_at
-             ]},
-            {"INSERT INTO audit_context(singleton,action_id) VALUES(1,?)", [c.id]}
-          ]
+          guard =
+            if c.expected && c.resource_id &&
+                 c.resource_type in ~w(events initiatives campaigns newsletters media) do
+              [
+                {"CREATE TEMP TABLE gcf_revision_check(ok INTEGER CONSTRAINT gcf_stale_revision CHECK(ok=1))",
+                 []},
+                {"INSERT INTO gcf_revision_check SELECT CASE WHEN EXISTS(SELECT 1 FROM #{c.resource_type} WHERE id=? AND updated_at=?) THEN 1 ELSE 0 END",
+                 [c.resource_id, c.expected]},
+                {"DROP TABLE gcf_revision_check", []}
+              ]
+            else
+              []
+            end
 
-          {:ok, prefix ++ statements ++ [{"DELETE FROM audit_context WHERE singleton=1", []}], 2,
-           1}
+          prefix =
+            guard ++
+              [
+                {"INSERT INTO audit_actions(id,actor_id,operation,resource_type,resource_id,resource_title,occurred_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
+                 [
+                   c.id,
+                   c.actor_id,
+                   c.operation,
+                   c.resource_type,
+                   c.resource_id,
+                   c.resource_title,
+                   c.occurred_at
+                 ]},
+                {"INSERT INTO audit_context(singleton,action_id) VALUES(1,?)", [c.id]}
+              ]
+
+          {:ok, prefix ++ statements ++ [{"DELETE FROM audit_context WHERE singleton=1", []}],
+           length(prefix), 1}
       end
     else
       {:ok, statements, 0, 0}

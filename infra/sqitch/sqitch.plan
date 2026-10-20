@@ -11,3 +11,5 @@ programmes [admin_content] 2026-10-20T23:00:00Z GCF <development@greater-change-
 identity_audit [programmes] 2026-10-21T00:00:00Z GCF <development@greater-change-foundation.invalid> # Named accounts, record ownership and atomic relational audit history
 
 media_metadata [identity_audit] 2026-10-21T01:00:00Z GCF <development@greater-change-foundation.invalid> # Capture timestamps, coordinates and image dimensions without inferred metadata
+
+realtime_presence [media_metadata] 2026-10-21T02:00:00Z GCF <development@greater-change-foundation.invalid> # Persistent account presence colors
