@@ -35,6 +35,15 @@ defmodule Gcf.IdentityTest do
     assert {:error, %Ash.Error.Forbidden{}} = result
   end
 
+  test "read-only pagination does not create an audit frame" do
+    query = [{"SELECT * FROM media LIMIT ? OFFSET ?", [48, 48]}]
+    assert {:ok, ^query, 0, 0} = Mutation.frame(query, [])
+
+    Mutation.run(%{"id" => "reader"}, "media_list", %{}, fn ->
+      assert {:ok, ^query, 0, 0} = Mutation.frame(query, [])
+    end)
+  end
+
   test "stored hashes verify only the matching password" do
     password = "a sufficiently long password"
     hash = Auth.hash_password(password)
