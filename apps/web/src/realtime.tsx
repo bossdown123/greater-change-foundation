@@ -7,7 +7,7 @@ import { fieldPresenceShape } from "./field-presence-shape"
 export type Activity={name:string;color:string;section:string;resource_id:string|null;title:string|null;editing:boolean;field?:string|null;field_active?:boolean;interacted_at?:number;connection_id?:string}
 export type Collaborator=Activity&{id:string}
 export type Change={id:string;actor_id:string;operation:string;resource_type:string;resource_id:string|null}
-export const RealtimeContext=createContext<{people:Collaborator[];connected:boolean;userId?:string;locate:(activity:Partial<Activity>)=>void;sendDraft:(draft:{kind:string;id:string;fields:Record<string,unknown>})=>void}>({people:[],connected:false,locate:()=>{},sendDraft:()=>{}})
+export const RealtimeContext=createContext<{people:Collaborator[];connected:boolean;userId?:string;locate:(activity:Partial<Activity>)=>void;sendDraft:(draft:{kind:string;id:string;fields:Record<string,unknown>;base_fields?:Record<string,unknown>})=>void}>({people:[],connected:false,locate:()=>{},sendDraft:()=>{}})
 export const useRealtime=()=>useContext(RealtimeContext)
 export function onChange(handler:(change:Change)=>void){const listener=(e:Event)=>handler((e as CustomEvent<Change>).detail);window.addEventListener("gcf:changed",listener);return()=>window.removeEventListener("gcf:changed",listener)}
 export function useChangeVersion(){const [version,setVersion]=useState(0);useEffect(()=>onChange(()=>setVersion(v=>v+1)),[]);return version}

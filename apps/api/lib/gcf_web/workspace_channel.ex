@@ -53,13 +53,16 @@ defmodule GcfWeb.WorkspaceChannel do
       ~w(title summary dates locations participants funds_raised currency custom_fields media_ids initiative_ids campaign_ids event_ids target raised starts_on ends_on subject introduction body updates alt caption)
 
     fields = params["fields"]
+    base_fields = params["base_fields"] || %{}
 
     valid =
       params["kind"] in ~w(events initiatives campaigns newsletters media) and
         is_binary(params["id"]) and Regex.match?(~r/^[a-f0-9]{32}$/, params["id"]) and
         is_map(fields) and map_size(fields) <= 30 and
         Enum.all?(Map.keys(fields), &(&1 in allowed)) and
-        byte_size(Jason.encode!(fields)) <= 650_000
+        is_map(base_fields) and map_size(base_fields) <= 30 and
+        Enum.all?(Map.keys(base_fields), &(&1 in allowed)) and
+        byte_size(Jason.encode!(%{fields: fields, base_fields: base_fields})) <= 1_300_000
 
     if valid and valid?(socket) do
       actor = socket.assigns.actor
@@ -68,6 +71,7 @@ defmodule GcfWeb.WorkspaceChannel do
         kind: params["kind"],
         id: params["id"],
         fields: fields,
+        base_fields: base_fields,
         connection_id: socket.assigns.connection_id,
         actor_id: actor["id"],
         name: actor["name"]
