@@ -15,6 +15,25 @@ unit. Placing one card inside another is strongly discouraged. Any exception
 must have a concrete functional reason that cannot be expressed clearly with a
 flatter layout; decoration or convenient grouping is not enough.
 
+## Show, don’t tell
+
+Let the actual content, preview, controls, icons, hierarchy, and visual feedback
+communicate what the workspace does. Do not narrate an interface the user can
+already see. Avoid repeated section names, explanatory headers, instructional
+empty-state paragraphs, and labels describing an obvious icon or action.
+
+Keep essential text: field labels, accessible names, errors, save/upload
+feedback, meaningful empty/search states, and publication state. Icon controls
+need accessible names and tooltips; color must never be the only status cue.
+Use the requested compact publication stoplight: left-aligned Hidden, Draft,
+and Published labels alongside vertically stacked red, blue, and green lights,
+with the actual state clearly active. Never imply publication has occurred when
+it has not.
+
+Previews show the generated output directly. Empty fields should not be filled
+with instructions. Collections use numbered pagination and a concise result
+range, with pagination omitted when there is only one page.
+
 ## Keep the document structure shallow
 
 Use semantic HTML and the fewest wrappers needed for layout, behavior, and
