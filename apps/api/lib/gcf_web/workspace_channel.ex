@@ -89,6 +89,12 @@ defmodule GcfWeb.WorkspaceChannel do
         do: Map.take(params["selection"], ~w(anchor head type)),
         else: nil
 
+    surface = params["surface"] || "field"
+
+    browsing? =
+      params["kind"] == "pointer" and
+        surface in ~w(sidebar header configuration preview workspace)
+
     pointer? =
       params["kind"] == "pointer" and coordinate?(params["x"]) and coordinate?(params["y"])
 
@@ -98,8 +104,11 @@ defmodule GcfWeb.WorkspaceChannel do
 
     valid =
       params["kind"] in ~w(pointer caret) and params["section"] in @sections and
-        is_binary(params["resource_id"]) and
-        Regex.match?(~r/^[a-f0-9]{32}$/, params["resource_id"]) and is_binary(params["field"]) and
+        (browsing? or surface == "field") and
+        ((is_nil(params["resource_id"]) and browsing?) or
+           (is_binary(params["resource_id"]) and
+              Regex.match?(~r/^[a-f0-9]{32}$/, params["resource_id"]))) and
+        is_binary(params["field"]) and
         byte_size(params["field"]) <= 200 and (pointer? or caret? or params["hidden"] == true)
 
     if valid and valid?(socket) do
@@ -115,6 +124,8 @@ defmodule GcfWeb.WorkspaceChannel do
           section: params["section"],
           resource_id: params["resource_id"],
           field: params["field"],
+          surface: surface,
+          anchor: text(params["anchor"], 240),
           hidden: params["hidden"] == true,
           x: if(coordinate?(params["x"]), do: params["x"], else: nil),
           y: if(coordinate?(params["y"]), do: params["y"], else: nil),

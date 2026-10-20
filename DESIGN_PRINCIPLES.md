@@ -177,3 +177,5 @@ not a repeated warning on every image.
 - When a person leaves a field, collapse only their name row into a 4 px account-colored dot at the field’s bottom-right. Keep active people expanded, retain inactive identities as recent presence, and treat a rich-text editor and its formatting controls as one field.
 
 - Apply unsaved remote changes directly to untouched fields and the preview. Merge compatible text edits, preserve local caret/selection and text composition, and retain explicit conflicts for overlapping edits. Live receipt is not a saved-state confirmation. Show account-colored remote pointers and text carets; hovering near them reveals the name sliding rightward on a lighter tint of that account color.
+
+- Browsing pointers remain visible outside inputs across shared workspace regions and identifiable controls or images. They do not imply text editing; hide pointers for unavailable targets and fade them after inactivity.
