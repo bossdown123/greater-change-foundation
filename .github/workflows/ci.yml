@@ -72,7 +72,7 @@ jobs:
           GCF_TEST_DATABASE=1 python3 infra/tests/realtime_smoke.py
           GCF_TEST_DATABASE=1 python3 infra/tests/rich_documents_smoke.py
           GCF_TEST_DATABASE=1 python3 infra/tests/publication_smoke.py
-          GCF_TEST_DATABASE=1 python3 infra/tests/image_groups_smoke.py
+          GCF_TEST_DATABASE=1 GCF_SMOKE_NETWORK=gcf_public python3 infra/tests/image_groups_smoke.py
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: check
