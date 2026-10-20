@@ -171,3 +171,5 @@ not a repeated warning on every image.
 - Never add refresh or reload buttons anywhere on the website. Keep saved data current automatically through authenticated Phoenix Channels and PubSub. Preserve drafts when remote changes arrive.
 - Keep gallery search, date range, slider, filters and actions on one compact row; allow horizontal scrolling on narrow screens.
 - Assign each account a persistent presence color. Show who is editing which item. Sidebar presence dots are 4 px circles, anchored at the bottom-right, right-aligned and extending left with even spacing. Deduplicate multiple tabs per person; provide accessible names and activity details, never color alone.
+
+- Field presence uses one continuous 2 px outline outside the input, joined to a bottom-right overlay with a concave left join and continuous right edge. Stack editor names vertically without reserving layout space. Each editor row retains its own account-colored background; only the outer outline follows the most recent editor. Do not layer duplicate input, focus, and presence borders.

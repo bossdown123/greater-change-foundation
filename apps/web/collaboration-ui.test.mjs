@@ -11,6 +11,15 @@ globalThis.requestAnimationFrame=callback=>setTimeout(callback,0)
 globalThis.cancelAnimationFrame=clearTimeout
 globalThis.getComputedStyle=dom.window.getComputedStyle.bind(dom.window)
 globalThis.ResizeObserver=class{observe(){}disconnect(){}}
+let fieldWidth=400
+const originalRect=HTMLElement.prototype.getBoundingClientRect
+HTMLElement.prototype.getBoundingClientRect=function(){
+ const rect=(left,top,width,height)=>({left,top,width,height,right:left+width,bottom:top+height,x:left,y:top,toJSON(){return this}})
+ if(this.matches('input[aria-label="Title"]'))return rect(20,50,fieldWidth,40)
+ if(this.matches('label'))return rect(20,20,fieldWidth,70)
+ if(this.matches('.field-editors'))return rect(0,0,110,44)
+ return originalRect.call(this)
+}
 const {createRoot}=await import('react-dom/client')
 const h=React.createElement,container=document.getElementById('test'),root=createRoot(container)
 try{
@@ -24,6 +33,17 @@ try{
  assert.ok(frame,'the visible field frame is mounted')
  assert.match(frame.textContent,/Member A/);assert.match(frame.textContent,/Member B/)
  assert.equal(frame.style.getPropertyValue('--editor-color'),'#d97706')
+ assert.deepEqual([...frame.querySelectorAll('.field-presence-member-fill')].map(row=>row.style.getPropertyValue('--member-color')),['#2563eb','#d97706'],'each member row keeps its own background color')
+ assert.equal(frame.style.left,'-4px' ,'the colored frame sits outside the native input')
+ assert.equal(frame.style.top,'26px')
+ assert.equal(frame.style.width,'408px')
+ assert.equal(frame.querySelectorAll('.field-presence-stroke').length,1,'only one path owns the entire border')
+ assert.equal(frame.querySelector('.field-presence-stroke').getAttribute('stroke-width'),'2')
+ assert.match(frame.querySelector('.field-presence-stroke').getAttribute('d'),/V 53 Q 297 47 291 47/,'the left tab join rounds inward')
+ fieldWidth=220
+ await act(async()=>window.dispatchEvent(new window.Event('resize')))
+ assert.equal(frame.style.width,'228px','the outer stroke tracks responsive field resizing')
+ assert.equal(frame.querySelector('svg').getAttribute('height'),'92')
  await act(async()=>{document.querySelector('input').focus();document.querySelector('input').blur()})
  assert.equal(located.at(-1).field,'Title:0','switching window focus must not clear the field indicator')
  await act(async()=>root.render(h('div')))

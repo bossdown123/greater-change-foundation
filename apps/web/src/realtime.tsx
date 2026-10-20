@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { Socket, Presence, type Channel } from "phoenix"
 import { api } from "./admin"
 import type { PeerDraft } from "./collaboration-state"
+import { fieldPresenceShape } from "./field-presence-shape"
 export type Activity={name:string;color:string;section:string;resource_id:string|null;title:string|null;editing:boolean;field?:string|null;interacted_at?:number;connection_id?:string}
 export type Collaborator=Activity&{id:string}
 export type Change={id:string;actor_id:string;operation:string;resource_type:string;resource_id:string|null}
@@ -70,7 +71,26 @@ export function CollaborativeFields({section,resourceId}:{section:string;resourc
 }
 
 function FieldPresenceFrame({element,label,field,editors,color}:{element:HTMLElement;label:HTMLElement;field:string;editors:Collaborator[];color:string}){
- const [box,setBox]=useState({left:0,top:0,width:0,height:0})
- useLayoutEffect(()=>{const measure=()=>{const rect=element.getBoundingClientRect(),parent=label.getBoundingClientRect();const next={left:rect.left-parent.left+label.scrollLeft,top:rect.top-parent.top+label.scrollTop,width:rect.width,height:rect.height};setBox(old=>JSON.stringify(old)===JSON.stringify(next)?old:next)};measure();const resize=new ResizeObserver(measure);resize.observe(element);resize.observe(label);window.addEventListener("resize",measure);return()=>{resize.disconnect();window.removeEventListener("resize",measure)}},[element,label])
- return <span className="field-presence-frame" style={{...box,"--editor-color":color} as React.CSSProperties} aria-hidden="false"><span className="field-editors" role="status" id={`field-presence-${field.replace(/[^a-z0-9]/gi,'-')}`} aria-label={`Editing ${field.split(":")[0]}: ${editors.map(p=>p.name).join(", ")}`}>{editors.map(p=><span key={p.id}><i style={{background:p.color}}/>{p.name}</span>)}</span></span>
+ const clipId=useId(),badge=useRef<HTMLSpanElement>(null)
+ const [box,setBox]=useState({left:0,top:0,width:0,height:0}),[tab,setTab]=useState({width:0,height:0})
+ useLayoutEffect(()=>{
+  const measure=()=>{
+   const rect=element.getBoundingClientRect(),parent=label.getBoundingClientRect()
+   // Leave a 2px gap between the native field and the outer 2px presence stroke.
+   const next={left:rect.left-parent.left+label.scrollLeft-4,top:rect.top-parent.top+label.scrollTop-4,width:rect.width+8,height:rect.height+8}
+   setBox(old=>JSON.stringify(old)===JSON.stringify(next)?old:next)
+   if(badge.current){const rect=badge.current.getBoundingClientRect();setTab(old=>old.width===rect.width&&old.height===rect.height?old:{width:rect.width,height:rect.height})}
+  }
+  measure();const resize=new ResizeObserver(measure);resize.observe(element);resize.observe(label);if(badge.current)resize.observe(badge.current)
+  window.addEventListener("resize",measure);return()=>{resize.disconnect();window.removeEventListener("resize",measure)}
+ },[element,label])
+ const shape=fieldPresenceShape(box.width,box.height,tab.width,tab.height)
+ return <span className="field-presence-frame" style={{...box,"--editor-color":color} as React.CSSProperties}>
+  <svg className="field-presence-outline" width={box.width} height={box.height+tab.height} aria-hidden="true">
+   <defs><clipPath id={clipId}><path d={shape.tab}/></clipPath></defs>
+   <g clipPath={`url(#${clipId})`}>{editors.map((person,index)=><rect key={person.id} className="field-presence-member-fill" x="0" y={box.height-1+index*tab.height/editors.length} width={box.width} height={tab.height/editors.length} style={{"--member-color":person.color} as React.CSSProperties}/>)}</g>
+   <path className="field-presence-stroke" d={shape.outline} fill="none" strokeWidth="2"/>
+  </svg>
+  <span ref={badge} className="field-editors" role="status" id={`field-presence-${field.replace(/[^a-z0-9]/gi,'-')}`} aria-label={`Editing ${field.split(":")[0]}: ${editors.map(p=>p.name).join(", ")}`}>{editors.map(p=><span key={p.id} title={p.name}><i style={{background:p.color}}/>{p.name}</span>)}</span>
+ </span>
 }
