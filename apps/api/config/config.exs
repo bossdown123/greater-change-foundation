@@ -5,3 +5,4 @@ config :ash, :include_embedded_source_by_default?, false
 config :ash, :default_page_type, :keyset
 config :ash, :policies, show_policy_breakdowns?: false
 config :logger, level: :info
+config :ash, default_string_length_count: :codepoints

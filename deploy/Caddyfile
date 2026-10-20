@@ -1,0 +1,8 @@
+{$GCF_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy app:4000
+}
+http://5.161.104.141 {
+    encode zstd gzip
+    reverse_proxy app:4000
+}

@@ -1,13 +1,18 @@
 name: gcf
 services:
   database:
-    image: ghcr.io/tursodatabase/libsql-server:latest
+    image: ghcr.io/tursodatabase/libsql-server@sha256:6dd3eb276d9d3604e4a48ac4a999a2e267814732d57d7e94c04ba71482333a67
     environment:
       SQLD_NODE: primary
     volumes:
       - database:/var/lib/sqld
     restart: unless-stopped
     networks: [internal]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
   migrate:
     build:
       context: .
@@ -17,7 +22,9 @@ services:
       TURSO_AUTH_TOKEN: ${TURSO_AUTH_TOKEN:-}
     volumes:
       - sqitch:/state
-    depends_on: [database]
+    depends_on:
+      database:
+        condition: service_healthy
     networks: [internal, public]
   app:
     build: .

@@ -1,0 +1,58 @@
+name: gcf
+services:
+  database:
+    image: ghcr.io/tursodatabase/libsql-server@sha256:6dd3eb276d9d3604e4a48ac4a999a2e267814732d57d7e94c04ba71482333a67
+    environment:
+      SQLD_NODE: primary
+    volumes:
+      - /var/lib/gcf/database:/var/lib/sqld
+    restart: unless-stopped
+    networks: [database]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  migrate:
+    image: ${GCF_MIGRATION_IMAGE:?Set the immutable migration image}
+    environment:
+      TURSO_DATABASE_URL: http://database:8080
+    volumes:
+      - /var/lib/gcf/sqitch:/state
+    depends_on:
+      database:
+        condition: service_healthy
+    networks: [database]
+  app:
+    image: ${GCF_IMAGE:?Set the immutable app image}
+    environment:
+      TURSO_DATABASE_URL: http://database:8080
+      ERL_FLAGS: +S 2:2
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [database, web]
+    ports: ["127.0.0.1:4000:4000"]
+  proxy:
+    image: caddy:2.11.2-alpine
+    environment:
+      GCF_DOMAIN: ${GCF_DOMAIN:-gcf.5-161-104-141.sslip.io}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /var/lib/gcf/caddy/data:/data
+      - /var/lib/gcf/caddy/config:/config
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [web]
+networks:
+  database:
+    internal: true
+  web:
