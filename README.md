@@ -97,7 +97,9 @@ The previous image references are retained in the server's `.env.previous`.
 
 ## Administration
 
-`/admin` provides a password-protected workspace with five sections:
+`/admin` provides a password-protected workspace with a shadcn left sidebar,
+a resizable configuration panel, and a live output-preview panel. Phones use
+Edit/Preview views and drawer navigation. The five sections are:
 
 - **Events:** title, story, multiple dates and locations, participant count,
   funds raised with currency, reusable images, and typed additional facts.

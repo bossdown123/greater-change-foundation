@@ -46,7 +46,7 @@ defmodule Gcf.Router do
     |> put_resp_header("referrer-policy", "strict-origin-when-cross-origin")
     |> put_resp_header(
       "content-security-policy",
-      "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     )
   end
 end

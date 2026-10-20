@@ -113,3 +113,11 @@ text, and optimize assets for loading performance.
 - Do the supplied graphics strengthen the composition and communicate meaning?
 
 Resolve violations by simplifying the design, not by adding another container.
+
+## Administration workspace
+
+The user selected a shadcn left sidebar with two resizable work panels: the
+configuration/details editor in the middle, and the live generated output
+preview on the right. Keep this structure. On phones, use the sidebar drawer
+and Edit/Preview views so both work areas remain usable. The sidebar is
+navigation, not one of the two resizable work panels.
