@@ -48,9 +48,9 @@ defmodule Gcf.Admin.Drafts do
     end
   end
 
-  defp title("events"), do: "Untitled event"
-  defp title("initiatives"), do: "Untitled initiative"
-  defp title("campaigns"), do: "Untitled campaign"
+  defp title("events"), do: "Untitled activity"
+  defp title("initiatives"), do: "Untitled campaign"
+  defp title("campaigns"), do: "Untitled fundraiser"
   defp title("articles"), do: "Untitled article"
   defp title("newsletters"), do: "Untitled newsletter"
 
