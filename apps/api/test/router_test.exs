@@ -1,6 +1,6 @@
 defmodule Gcf.RouterTest do
   use ExUnit.Case, async: false
-  use Plug.Test
+  import Plug.Test
 
   test "liveness works without database credentials" do
     response = Gcf.Router.call(conn(:get, "/healthz"), Gcf.Router.init([]))
