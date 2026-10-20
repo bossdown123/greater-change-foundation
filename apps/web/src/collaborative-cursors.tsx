@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom'
 import {cursorRect,readSelection,type Selection} from './cursor-position'
 import {pointerSurface,resolvePointerSurface,type PointerSurface} from './cursor-surface'
 import type {Collaborator} from './realtime'
+import {MacPointer} from './mac-pointer'
 export type CursorSignal={kind:'pointer'|'caret';section:string;resource_id:string|null;field:string;surface?:PointerSurface|'field';anchor?:string;hidden?:boolean;x?:number;y?:number;selection?:Selection;connection_id?:string;actor_id?:string;name?:string;color?:string;at?:number}
 type Field={element:HTMLElement;label:HTMLElement;key:string}
 type Cursor=CursorSignal&{connection_id:string;actor_id:string;name:string;color:string;at:number}
@@ -58,7 +59,7 @@ function CursorMarker({cursor,field,hover,tick,fixed=false}:{cursor:Cursor;field
  if(!point)return null
  const show=Math.abs(hover.x-point.screenX)<18&&hover.y>=point.screenY-8&&hover.y<=point.screenY+point.height+8
  return <span className={`collaboration-cursor ${cursor.kind}${show?' show-name':''}${point.flip?' flip-name':''}`} style={{position:fixed?'fixed':'absolute',zIndex:fixed?65:12,left:point.left,top:point.top,height:point.height,'--cursor-color':cursor.color} as React.CSSProperties} aria-hidden="true">
-  {cursor.kind==='pointer'?<svg width="14" height="18" viewBox="0 0 14 18"><path d="M1 1v14l4-4 3 6 3-1-3-6h5z"/></svg>:<i/>}
+  {cursor.kind==='pointer'?<MacPointer/>:<i/>}
   <span className="collaboration-cursor-name">{cursor.name}</span>
  </span>
 }
