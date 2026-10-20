@@ -11,6 +11,7 @@ import { api, PreviewContext, type Media } from "./admin"
 import { WorkspaceHeader } from "./admin-layout"
 import { readDocument, writeDocument, safeHref, type RichNode } from "./rich-document"
 const Figure=Node.create({name:"gcfFigure",group:"block",content:"inline*",draggable:true,isolating:true,
+ addKeyboardShortcuts(){return {Enter:()=>{const {state}=this.editor;if(state.selection.$from.parent.type.name!==this.name)return false;const after=state.selection.$from.after();return this.editor.chain().insertContentAt(after,{type:"paragraph"}).setTextSelection(after+1).run()}}},
  addAttributes(){return{mediaId:{default:null},alt:{default:""}}},
  parseHTML(){return[{tag:"figure[data-media-id]",contentElement:"figcaption",getAttrs:element=>({mediaId:(element as HTMLElement).dataset.mediaId,alt:(element as HTMLElement).querySelector("img")?.alt||""})}]},
  renderHTML({node,HTMLAttributes}){return ["figure",mergeAttributes(HTMLAttributes,{"data-media-id":node.attrs.mediaId}),["img",{src:`/api/admin/media/${node.attrs.mediaId}/file`,alt:node.attrs.alt,contenteditable:"false"}],["figcaption",0]]}

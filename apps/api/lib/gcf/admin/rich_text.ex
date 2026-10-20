@@ -7,7 +7,7 @@ defmodule Gcf.Admin.RichText do
     case decode(value) do
       {:ok, doc} ->
         byte_size(value) <= 600_000 and valid_node?(doc, 0) and doc["type"] == "doc" and
-          String.length(text_node(doc)) <= limit
+          String.length(text_node(doc)) <= limit and length(images(doc)) <= 100
 
       :plain ->
         String.length(value) <= limit
@@ -126,6 +126,7 @@ defmodule Gcf.Admin.RichText do
     do: byte_size(href) <= 2000 and Regex.match?(~r/^(https?:\/\/|mailto:)/i, href)
 
   defp safe_link?(_), do: false
+  defp text_node(%{"type" => "hardBreak"}), do: "\n"
   defp text_node(%{"type" => "text", "text" => text}) when is_binary(text), do: text
 
   defp text_node(node) when is_map(node),

@@ -7,7 +7,7 @@ export function readDocument(value:string):RichNode{
 }
 export const writeDocument=(doc:RichNode)=>RICH_PREFIX+JSON.stringify(doc)
 export const safeHref=(href:unknown)=>typeof href==="string"&&/^(https?:\/\/|mailto:)/i.test(href)?href:undefined
-export function documentText(value:string):string{const visit=(node:RichNode):string=>node.type==="text"?node.text||"":(node.content||[]).map(visit).join(["paragraph","heading","gcfFigure"].includes(node.type)?"":"\n");return visit(readDocument(value)).trim()}
+export function documentText(value:string):string{const visit=(node:RichNode):string=>node.type==="hardBreak"?"\n":node.type==="text"?node.text||"":(node.content||[]).map(visit).join(["paragraph","heading","gcfFigure"].includes(node.type)?"":"\n");return visit(readDocument(value)).trim()}
 export function documentHTML(value:string):string{
  const esc=(s:unknown)=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));let figure=0
  const visit=(n:RichNode):string=>{let inner=(n.content||[]).map(visit).join("");if(n.type==="text"){inner=esc(n.text);for(const m of n.marks||[]){const tag=({bold:"strong",italic:"em",underline:"u",strike:"s",code:"code"} as Record<string,string>)[m.type];if(tag)inner=`<${tag}>${inner}</${tag}>`;else if(m.type==="link"&&safeHref(m.attrs?.href))inner=`<a href="${esc(m.attrs?.href)}" rel="noopener noreferrer">${inner}</a>`}return inner}
