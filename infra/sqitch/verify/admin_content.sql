@@ -7,6 +7,6 @@ SELECT event_id,field_id,text_value,number_value,date_value,link_value FROM even
 SELECT id,filename,storage_key,thumbnail_key,alt,caption FROM media WHERE 0;
 SELECT event_id,media_id,position FROM event_media WHERE 0;
 SELECT id,title,subject,introduction,body FROM newsletters WHERE 0;
-SELECT newsletter_id,event_id,position FROM newsletter_events WHERE 0;
-SELECT version FROM gcf_schema WHERE id=1 AND version=2;
+
+SELECT version FROM gcf_schema WHERE id=1 AND version>=2;
 PRAGMA foreign_key_check;

@@ -1,6 +1,8 @@
 defmodule Gcf.Admin.Content do
   alias Gcf.Database, as: DB
   @collections ~w(events newsletters)
+  def run(operation, %{"collection" => kind} = params) when kind in ["initiatives", "campaigns"],
+    do: Gcf.Admin.Programs.run(operation, params)
 
   def run("list", %{"collection" => collection} = p) when collection in @collections do
     page = max(1, min(integer(p["page"], 1), 100_000))
@@ -27,6 +29,14 @@ defmodule Gcf.Admin.Content do
       now = DateTime.utc_now() |> DateTime.to_iso8601()
       statements = save_statements(collection, id, data, now)
 
+      statements =
+        if collection == "events",
+          do:
+            statements ++
+              event_links("initiative", id, data["initiative_ids"]) ++
+              event_links("campaign", id, data["campaign_ids"]),
+          else: statements
+
       with {:ok, _} <- DB.batch(statements),
            do: run("get", %{"collection" => collection, "id" => id})
     end
@@ -35,6 +45,18 @@ defmodule Gcf.Admin.Content do
   def run("delete", %{"collection" => collection, "id" => id}) when collection in @collections do
     with {:ok, _} <- DB.execute("DELETE FROM #{collection} WHERE id = ?", [id]),
          do: {:ok, %{deleted: true}}
+  end
+
+  def run("list_updates", p) do
+    page = max(1, min(integer(p["page"], 1), 100_000))
+    kind = if p["kind"] in ["events", "initiatives", "campaigns"], do: p["kind"], else: "%"
+    query = "%" <> String.slice(to_string(p["query"] || ""), 0, 200) <> "%"
+
+    sql =
+      "SELECT * FROM (SELECT id,title,summary,updated_at,'events' AS kind FROM events UNION ALL SELECT id,title,summary,updated_at,'initiatives' AS kind FROM initiatives UNION ALL SELECT id,title,summary,updated_at,'campaigns' AS kind FROM campaigns) WHERE title LIKE ? AND kind LIKE ? ORDER BY updated_at DESC,id LIMIT 25 OFFSET ?"
+
+    with {:ok, rows} <- DB.execute(sql, [query, kind, (page - 1) * 24]),
+         do: {:ok, %{items: Enum.take(rows, 24), more: length(rows) > 24, page: page}}
   end
 
   def run("media_list", p) do
@@ -98,33 +120,24 @@ defmodule Gcf.Admin.Content do
     end
   end
 
-  def run("generate", %{"event_ids" => ids}) when is_list(ids) and length(ids) in 1..30 do
-    with {:ok, events} <- load_events(ids) do
-      body =
-        Enum.map_join(events, "\n\n—\n\n", fn e ->
-          details = [
-            e["title"],
-            e["summary"],
-            Enum.join(e["dates"], " · "),
-            Enum.join(e["locations"], ", "),
-            if(e["participants"] != nil, do: "Participants: #{e["participants"]}"),
-            if(e["funds_raised"] != nil,
-              do: "Funds raised: #{e["currency"]} #{e["funds_raised"]}"
-            ),
-            Enum.map_join(e["custom_fields"], "\n", &"#{&1["label"]}: #{&1["value"]}")
-          ]
+  def run("generate", params) do
+    updates = updates(params)
 
-          Enum.reject(details, &(&1 in [nil, ""])) |> Enum.join("\n\n")
-        end)
-
+    with true <- length(updates) in 1..60,
+         :ok <- valid_updates(updates),
+         {:ok, sections} <- newsletter_sections(updates) do
       {:ok,
        %{
          title: "GCF newsletter",
          subject: "Greater Change Foundation — news from our community",
          introduction: "Here is the latest from Greater Change Foundation.",
-         body: body,
-         event_ids: ids
+         body: Enum.join(sections, "\n\n—\n\n"),
+         updates: updates,
+         event_ids: for(u <- updates, u["kind"] == "events", do: u["id"])
        }}
+    else
+      false -> {:error, "Choose between 1 and 60 updates"}
+      error -> error
     end
   end
 
@@ -193,7 +206,9 @@ defmodule Gcf.Admin.Content do
       "funds_raised" => blank_nil(d["funds_raised"]),
       "currency" => d["currency"] || "USD",
       "custom_fields" => d["custom_fields"] || [],
-      "media_ids" => d["media_ids"] || []
+      "media_ids" => d["media_ids"] || [],
+      "initiative_ids" => d["initiative_ids"],
+      "campaign_ids" => d["campaign_ids"]
     }
 
     cond do
@@ -231,18 +246,19 @@ defmodule Gcf.Admin.Content do
         {:error, "An image can only appear once per event"}
 
       true ->
-        with {:ok, _} <- load_media(data["media_ids"]), do: {:ok, data}
+        with {:ok, _} <- load_media(data["media_ids"]),
+             :ok <- optional_links("initiatives", data["initiative_ids"]),
+             :ok <- optional_links("campaigns", data["campaign_ids"]),
+             do: {:ok, data}
     end
   end
 
   def validate("newsletters", d) do
-    data =
-      Map.take(d, ~w(title subject introduction body event_ids)) |> Map.put_new("event_ids", [])
+    data = Map.take(d, ~w(title subject introduction body)) |> Map.put("updates", updates(d))
 
     if valid_text?(data["title"], 200, true) and valid_text?(data["subject"], 300, true) and
-         valid_text?(data["introduction"], 10_000) and valid_text?(data["body"], 100_000) and
-         list_of?(data["event_ids"], 30, &id?/1) do
-      with {:ok, _} <- load_events(data["event_ids"]), do: {:ok, data}
+         valid_text?(data["introduction"], 10000) and valid_text?(data["body"], 100_000) do
+      with :ok <- valid_updates(data["updates"]), do: {:ok, data}
     else
       {:error, "Add a title and subject; keep the newsletter within the text limits"}
     end
@@ -281,6 +297,25 @@ defmodule Gcf.Admin.Content do
 
   defp save_id(table, id) do
     with {:ok, _} <- get(table, id), do: {:ok, id}
+  end
+
+  defp optional_links(_, nil), do: :ok
+  defp optional_links(kind, ids), do: Gcf.Admin.Programs.check_ids(kind, ids)
+  defp event_links(_, _, nil), do: []
+
+  defp event_links(kind, event_id, ids) do
+    table = kind <> "_events"
+    owner = kind <> "_id"
+
+    [
+      {"DELETE FROM #{table} WHERE event_id=?" <>
+         if(ids == [], do: "", else: " AND #{owner} NOT IN (#{placeholders(ids)})"),
+       [event_id | ids]}
+    ] ++
+      Enum.map(ids, fn id ->
+        {"INSERT INTO #{table}(#{owner},event_id,position) SELECT ?,?,COALESCE(MAX(position),-1)+1 FROM #{table} WHERE #{owner}=? ON CONFLICT(#{owner},event_id) DO NOTHING",
+         [id, event_id, id]}
+      end)
   end
 
   defp save_statements("events", id, data, now) do
@@ -345,12 +380,19 @@ defmodule Gcf.Admin.Content do
     [
       {"INSERT INTO newsletters(id,title,subject,introduction,body,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,subject=excluded.subject,introduction=excluded.introduction,body=excluded.body,updated_at=excluded.updated_at",
        [id, data["title"], data["subject"], data["introduction"], data["body"], now, now]},
-      {"DELETE FROM newsletter_events WHERE newsletter_id=?", [id]}
+      {"DELETE FROM newsletter_items WHERE newsletter_id=?", [id]}
     ] ++
-      Enum.with_index(data["event_ids"], fn event_id, position ->
-        {"INSERT INTO newsletter_events(newsletter_id,event_id,position) VALUES(?,?,?)",
-         [id, event_id, position]}
-      end)
+      (Enum.with_index(data["updates"], fn update, position ->
+         item_id = uuid()
+         {table, key} = update_table(update["kind"])
+
+         [
+           {"INSERT INTO newsletter_items(id,newsletter_id,position,kind) VALUES(?,?,?,?)",
+            [item_id, id, position, update["kind"]]},
+           {"INSERT INTO #{table}(item_id,#{key}) VALUES(?,?)", [item_id, update["id"]]}
+         ]
+       end)
+       |> List.flatten())
   end
 
   defp hydrate!(_, []), do: []
@@ -359,7 +401,7 @@ defmodule Gcf.Admin.Content do
     ids = Enum.map(rows, & &1["id"])
     clause = placeholders(ids)
 
-    {:ok, [dates, locations, facts, media]} =
+    {:ok, [dates, locations, facts, media, initiatives, campaigns]} =
       DB.batch([
         {"SELECT event_id,event_date FROM event_dates WHERE event_id IN (#{clause}) ORDER BY position",
          ids},
@@ -368,6 +410,10 @@ defmodule Gcf.Admin.Content do
         {"SELECT v.*,f.label,f.kind FROM event_field_values v JOIN field_definitions f ON f.id=v.field_id WHERE event_id IN (#{clause}) ORDER BY v.position",
          ids},
         {"SELECT event_id,media_id FROM event_media WHERE event_id IN (#{clause}) ORDER BY position",
+         ids},
+        {"SELECT event_id,initiative_id FROM initiative_events WHERE event_id IN (#{clause}) ORDER BY initiative_id",
+         ids},
+        {"SELECT event_id,campaign_id FROM campaign_events WHERE event_id IN (#{clause}) ORDER BY campaign_id",
          ids}
       ])
 
@@ -380,6 +426,8 @@ defmodule Gcf.Admin.Content do
         "dates" => related(dates, row["id"], "event_date"),
         "locations" => related(locations, row["id"], "name"),
         "media_ids" => related(media, row["id"], "media_id"),
+        "initiative_ids" => related(initiatives, row["id"], "initiative_id"),
+        "campaign_ids" => related(campaigns, row["id"], "campaign_id"),
         "custom_fields" =>
           facts
           |> Enum.filter(&(&1["event_id"] == row["id"]))
@@ -407,18 +455,97 @@ defmodule Gcf.Admin.Content do
 
     {:ok, links} =
       DB.execute(
-        "SELECT newsletter_id,event_id FROM newsletter_events WHERE newsletter_id IN (#{placeholders(ids)}) ORDER BY position",
+        "SELECT i.newsletter_id,i.kind,i.position,COALESCE(e.event_id,n.initiative_id,c.campaign_id) AS source_id FROM newsletter_items i LEFT JOIN newsletter_event_items e ON e.item_id=i.id LEFT JOIN newsletter_initiative_items n ON n.item_id=i.id LEFT JOIN newsletter_campaign_items c ON c.item_id=i.id WHERE i.newsletter_id IN (#{placeholders(ids)}) ORDER BY i.position",
         ids
       )
 
     Enum.map(rows, fn row ->
-      Map.put(
-        row,
-        "event_ids",
-        links |> Enum.filter(&(&1["newsletter_id"] == row["id"])) |> Enum.map(& &1["event_id"])
-      )
+      updates =
+        for(
+          x <- links,
+          x["newsletter_id"] == row["id"],
+          do: %{"kind" => x["kind"], "id" => x["source_id"]}
+        )
+
+      row
+      |> Map.put("updates", updates)
+      |> Map.put("event_ids", for(u <- updates, u["kind"] == "events", do: u["id"]))
     end)
   end
+
+  defp updates(d) do
+    case d["updates"] do
+      nil -> for id <- d["event_ids"] || [], do: %{"kind" => "events", "id" => id}
+      items when is_list(items) -> items
+      _ -> [%{"kind" => "invalid", "id" => ""}]
+    end
+  end
+
+  defp valid_updates(items) do
+    if is_list(items) and length(items) <= 60 and
+         Enum.all?(items, fn x ->
+           is_map(x) and x["kind"] in ["events", "initiatives", "campaigns"] and id?(x["id"])
+         end) and length(Enum.uniq_by(items, &{&1["kind"], &1["id"]})) == length(items) do
+      Enum.reduce_while(["events", "initiatives", "campaigns"], :ok, fn kind, _ ->
+        case Gcf.Admin.Programs.check_ids(kind, for(u <- items, u["kind"] == kind, do: u["id"])) do
+          :ok -> {:cont, :ok}
+          error -> {:halt, error}
+        end
+      end)
+    else
+      {:error, "Choose up to 60 unique event, initiative or campaign updates"}
+    end
+  end
+
+  defp newsletter_sections(updates) do
+    Enum.reduce_while(updates, {:ok, []}, fn u, {:ok, sections} ->
+      record =
+        if u["kind"] == "events",
+          do: with({:ok, [event]} <- load_events([u["id"]]), do: {:ok, event}),
+          else: Gcf.Admin.Programs.get(u["kind"], u["id"])
+
+      case record do
+        {:ok, r} ->
+          details =
+            case u["kind"] do
+              "events" ->
+                [
+                  Enum.join(r["dates"], " · "),
+                  Enum.join(r["locations"], ", "),
+                  if(r["participants"] != nil, do: "Participants: #{r["participants"]}"),
+                  if(r["funds_raised"] != nil,
+                    do: "Funds raised: #{r["currency"]} #{r["funds_raised"]}"
+                  ),
+                  Enum.map_join(r["custom_fields"], "\n", &"#{&1["label"]}: #{&1["value"]}")
+                ]
+
+              "initiatives" ->
+                []
+
+              "campaigns" ->
+                [
+                  if(r["raised"] != nil, do: "Raised: #{r["currency"]} #{r["raised"]}"),
+                  if(r["target"] != nil, do: "Target: #{r["currency"]} #{r["target"]}"),
+                  r["starts_on"],
+                  r["ends_on"]
+                ]
+            end
+
+          section =
+            Enum.reject([r["title"], r["summary"] | details], &(&1 in [nil, ""]))
+            |> Enum.join("\n\n")
+
+          {:cont, {:ok, sections ++ [section]}}
+
+        error ->
+          {:halt, error}
+      end
+    end)
+  end
+
+  defp update_table("events"), do: {"newsletter_event_items", "event_id"}
+  defp update_table("initiatives"), do: {"newsletter_initiative_items", "initiative_id"}
+  defp update_table("campaigns"), do: {"newsletter_campaign_items", "campaign_id"}
 
   defp related(rows, id, column),
     do: rows |> Enum.filter(&(&1["event_id"] == id)) |> Enum.map(& &1[column])

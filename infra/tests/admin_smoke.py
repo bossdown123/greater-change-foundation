@@ -34,7 +34,7 @@ csrf = call('/session')['csrf']
 call('/session', 'POST', {'password': password}, expected=403, headers={'X-CSRF-Token': 'invalid'})
 csrf = call('/session', 'POST', {'password': password})['csrf']
 assert call('/session')['authenticated']
-media = event = newsletter = None
+media = event = newsletter = initiative = campaign = None
 try:
     boundary = 'gcf-' + uuid.uuid4().hex
     image = Path('apps/web/public/assets/gcf-logo.jpg').read_bytes()
@@ -54,14 +54,27 @@ try:
     event_data['locations']=['Town hall']
     event = call('/events/'+event['id'],'PUT',event_data)
     assert event['locations']==['Town hall']
-    generated = call('/newsletters/generate','POST',{'event_ids':[event['id']]})
+    initiative = call('/initiatives','POST',{'title':'Test initiative','summary':'Initiative story','event_ids':[event['id']]})
+    campaign = call('/campaigns','POST',{'title':'Test campaign','summary':'Campaign story','event_ids':[event['id']],'initiative_ids':[initiative['id']],'target':2000,'raised':750.25,'currency':'JMD','starts_on':'2026-10-01','ends_on':'2026-12-31'})
+    linked_event = call('/events/'+event['id'])
+    assert linked_event['initiative_ids']==[initiative['id']] and linked_event['campaign_ids']==[campaign['id']]
+    assert call('/initiatives/'+initiative['id'])['campaign_ids']==[campaign['id']]
+    # Editing a relationship from either end updates one shared join relation.
+    linked_event['campaign_ids']=[]
+    call('/events/'+event['id'],'PUT',linked_event)
+    assert call('/campaigns/'+campaign['id'])['event_ids']==[]
+    updates=[{'kind':'campaigns','id':campaign['id']},{'kind':'initiatives','id':initiative['id']},{'kind':'events','id':event['id']}]
+    generated = call('/newsletters/generate','POST',{'updates':updates})
     assert '123.45' in generated['body'] and 'Volunteers: 12' in generated['body']
+    assert '750.25' in generated['body'] and generated['body'].index('Test campaign')<generated['body'].index('Test initiative')
     newsletter = call('/newsletters','POST',generated)
-    assert call('/newsletters/'+newsletter['id'])['event_ids']==[event['id']]
+    assert call('/newsletters/'+newsletter['id'])['updates']==updates
     assert any(e['id']==event['id'] for e in call('/events')['items'])
     print('PASS: authentication, CSRF, private original/thumbnail uploads, normalized event round-trip, reuse protection, validation, newsletter generation and persistence')
 finally:
     if newsletter: call('/newsletters/'+newsletter['id'],'DELETE')
+    if campaign: call('/campaigns/'+campaign['id'],'DELETE')
+    if initiative: call('/initiatives/'+initiative['id'],'DELETE')
     if event: call('/events/'+event['id'],'DELETE')
     if media: call('/media/'+media['id'],'DELETE')
 call('/session','DELETE')

@@ -97,14 +97,18 @@ The previous image references are retained in the server's `.env.previous`.
 
 ## Administration
 
-`/admin` provides a password-protected workspace with three sections:
+`/admin` provides a password-protected workspace with five sections:
 
 - **Events:** title, story, multiple dates and locations, participant count,
   funds raised with currency, reusable images, and typed additional facts.
+- **Initiatives:** ongoing work with reusable links to existing events.
+- **Campaigns:** fundraising goals, recorded progress, currency and optional
+  dates, with explicit links to initiatives and events. Linked event amounts
+  are not automatically summed.
 - **Image library:** private JPEG/PNG/WebP uploads (up to 32 MB each), optimized
   thumbnails, image descriptions, captions, usage information and deletion.
   Removing an image from an event does not delete it from the library.
-- **Newsletters:** select and order events, generate an editable draft from their
+- **Newsletters:** select and order event, initiative and campaign updates, generate an editable draft from their
   recorded details, then preview, copy, or export HTML/plain text. Generation is
   deterministic; it does not invent facts or call an AI service. Email delivery,
   subscriber management and a public blog are not enabled.

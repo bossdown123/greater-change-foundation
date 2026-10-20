@@ -5,3 +5,6 @@
 **/deps
 .env*
 work
+
+.admin-password
+.secrets.env

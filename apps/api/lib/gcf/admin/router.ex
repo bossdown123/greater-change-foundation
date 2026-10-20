@@ -48,6 +48,10 @@ defmodule Gcf.Admin.Router do
     conn |> configure_session(drop: true) |> json(200, %{authenticated: false})
   end
 
+  get "/updates" do
+    action(conn, "list_updates", conn.query_params)
+  end
+
   get "/media" do
     action(conn, "media_list", conn.query_params)
   end
@@ -80,23 +84,26 @@ defmodule Gcf.Admin.Router do
     action(conn, "generate", conn.body_params)
   end
 
-  get "/:collection" when collection in ["events", "newsletters"] do
+  get "/:collection" when collection in ["events", "newsletters", "initiatives", "campaigns"] do
     action(conn, "list", Map.put(conn.query_params, "collection", collection))
   end
 
-  post "/:collection" when collection in ["events", "newsletters"] do
+  post "/:collection" when collection in ["events", "newsletters", "initiatives", "campaigns"] do
     action(conn, "save", %{"collection" => collection, "data" => conn.body_params})
   end
 
-  get "/:collection/:id" when collection in ["events", "newsletters"] do
+  get "/:collection/:id"
+      when collection in ["events", "newsletters", "initiatives", "campaigns"] do
     action(conn, "get", %{"collection" => collection, "id" => id})
   end
 
-  put "/:collection/:id" when collection in ["events", "newsletters"] do
+  put "/:collection/:id"
+      when collection in ["events", "newsletters", "initiatives", "campaigns"] do
     action(conn, "save", %{"collection" => collection, "id" => id, "data" => conn.body_params})
   end
 
-  delete "/:collection/:id" when collection in ["events", "newsletters"] do
+  delete "/:collection/:id"
+         when collection in ["events", "newsletters", "initiatives", "campaigns"] do
     action(conn, "delete", %{"collection" => collection, "id" => id})
   end
 
