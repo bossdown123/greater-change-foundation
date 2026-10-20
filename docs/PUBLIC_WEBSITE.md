@@ -21,7 +21,7 @@ accessible enlarged photograph view. No cards, page selectors or refresh control
   collection and filename. Images are resized, auto-oriented and stripped of
   embedded metadata; full originals remain in the private library.
 - Story years describe the activity, not a fabricated article publication date.
-- No participant identities, impact totals, financial figures, partner claims,
+- No unverified participant identities, impact totals, financial figures, partner claims,
   founding dates, registration or tax claims are inferred.
 - The general contact email comes from GCF correspondence. Contributions and
   volunteering are enquiries via the visitor's mail app; no fake checkout,
@@ -53,3 +53,23 @@ Local development uses the existing Vite server at port 4173. Production remains
 on the existing Hetzner/Cloudflare setup. No new hosting service or remote asset
 bucket is needed. Public images are versioned, optimized assets; browsing them
 requires no connection to the private bucket.
+
+## Chairman profile
+
+The About page names Warner Bernard as Chairman of the Board. The name, role and
+education-partnership context are supported by GCF's own LinkedIn page:
+https://jm.linkedin.com/company/the-greater-change-foundation (read 20 October 2026;
+post describing the ICWI partnership identifies him as Board Chair). This is the
+Jamaican organisation, not the unrelated UK charity with a similar name. Avoid
+adding a founder title, career history, dates or impact claims without a primary source.
+
+The temporary portrait is the image supplied and identified by the site owner on
+20 October 2026 (`Screenshot 2026-10-20 at 3.46.22 PM.png`, copied unchanged to
+`/assets/people/warner-bernard.png`). No other face in the library has been identified
+by visual comparison. Replace it when the owner identifies a source filename.
+
+The Latin statement is deliberately labelled placeholder copy awaiting Warner's
+own words. It is not an attributed quote. His name below uses the self-hosted
+Allura font (Google Fonts, SIL Open Font License bundled alongside the font);
+this is typeset text, not a reproduction of his signature. Replace the placeholder
+and remove its provisional labels only after his approved statement is supplied.
