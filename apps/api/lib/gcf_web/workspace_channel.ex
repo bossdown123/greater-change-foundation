@@ -5,7 +5,8 @@ defmodule GcfWeb.WorkspaceChannel do
   @impl true
   def join("admin:workspace", _params, socket) do
     send(self(), :after_join)
-    {:ok, socket}
+    connection_id = Base.url_encode64(:crypto.strong_rand_bytes(12), padding: false)
+    {:ok, %{connection_id: connection_id}, assign(socket, :connection_id, connection_id)}
   end
 
   @impl true
@@ -47,6 +48,37 @@ defmodule GcfWeb.WorkspaceChannel do
     end
   end
 
+  def handle_in("draft", params, socket) do
+    allowed =
+      ~w(title summary dates locations participants funds_raised currency custom_fields media_ids initiative_ids campaign_ids event_ids target raised starts_on ends_on subject introduction body updates alt caption)
+
+    fields = params["fields"]
+
+    valid =
+      params["kind"] in ~w(events initiatives campaigns newsletters media) and
+        is_binary(params["id"]) and Regex.match?(~r/^[a-f0-9]{32}$/, params["id"]) and
+        is_map(fields) and map_size(fields) <= 30 and
+        Enum.all?(Map.keys(fields), &(&1 in allowed)) and
+        byte_size(Jason.encode!(fields)) <= 650_000
+
+    if valid and valid?(socket) do
+      actor = socket.assigns.actor
+
+      broadcast_from!(socket, "draft", %{
+        kind: params["kind"],
+        id: params["id"],
+        fields: fields,
+        connection_id: socket.assigns.connection_id,
+        actor_id: actor["id"],
+        name: actor["name"]
+      })
+
+      {:reply, :ok, socket}
+    else
+      {:reply, {:error, %{reason: "invalid_draft"}}, socket}
+    end
+  end
+
   def handle_in(_, _, socket), do: {:reply, {:error, %{reason: "unsupported"}}, socket}
 
   defp valid?(socket) do
@@ -60,6 +92,7 @@ defmodule GcfWeb.WorkspaceChannel do
     actor = socket.assigns.actor
 
     %{
+      connection_id: socket.assigns.connection_id,
       name: actor["name"],
       color: actor["color"],
       section: params["section"],

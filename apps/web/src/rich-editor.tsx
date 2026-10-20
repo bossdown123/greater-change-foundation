@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react"
-import { EditorContent, useEditor } from "@tiptap/react"
+import { EditorContent, useEditor, ReactNodeViewRenderer } from "@tiptap/react"
 import { Node, mergeAttributes, type JSONContent } from "@tiptap/core"
 import StarterKit from "@tiptap/starter-kit"
 import TextAlign from "@tiptap/extension-text-align"
@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button"
 import { Gallery } from "./admin-gallery"
 import { api, PreviewContext, type Media } from "./admin"
 import { WorkspaceHeader } from "./admin-layout"
-import { readDocument, writeDocument, safeHref, type RichNode } from "./rich-document"
+import { readDocument, writeDocument, safeHref, figureWidth, type RichNode } from "./rich-document"
+import { FigureReference } from "./figure-reference"
 const Figure=Node.create({name:"gcfFigure",group:"block",content:"inline*",draggable:true,isolating:true,
  addKeyboardShortcuts(){return {Enter:()=>{const {state}=this.editor;if(state.selection.$from.parent.type.name!==this.name)return false;const after=state.selection.$from.after();return this.editor.chain().insertContentAt(after,{type:"paragraph"}).setTextSelection(after+1).run()}}},
- addAttributes(){return{mediaId:{default:null},alt:{default:""}}},
- parseHTML(){return[{tag:"figure[data-media-id]",contentElement:"figcaption",getAttrs:element=>({mediaId:(element as HTMLElement).dataset.mediaId,alt:(element as HTMLElement).querySelector("img")?.alt||""})}]},
- renderHTML({node,HTMLAttributes}){return ["figure",mergeAttributes(HTMLAttributes,{"data-media-id":node.attrs.mediaId}),["img",{src:`/api/admin/media/${node.attrs.mediaId}/file`,alt:node.attrs.alt,contenteditable:"false"}],["figcaption",0]]}
+ addAttributes(){return{mediaId:{default:null},alt:{default:""},widthPercent:{default:100}}},
+ parseHTML(){return[{tag:"figure[data-media-id]",contentElement:"figcaption",getAttrs:element=>({mediaId:(element as HTMLElement).dataset.mediaId,alt:(element as HTMLElement).querySelector("img")?.alt||"",widthPercent:figureWidth(Number((element as HTMLElement).dataset.widthPercent||100))})}]},
+ renderHTML({node,HTMLAttributes}){return ["figure",mergeAttributes(HTMLAttributes,{"data-media-id":node.attrs.mediaId,"data-width-percent":figureWidth(node.attrs.widthPercent),style:`width:${figureWidth(node.attrs.widthPercent)}%;margin-inline:auto`}),["img",{src:`/api/admin/media/${node.attrs.mediaId}/file`,alt:node.attrs.alt,style:"width:100%;height:auto",contenteditable:"false"}],["figcaption",0]]},
+ addNodeView(){return ReactNodeViewRenderer(FigureReference,{contentDOMElementTag:"span",selectedOnTextSelection:true})}
 })
 export default function RichEditor({label,value,onChange,plain=false}:{label:string;value:string;onChange:(value:string)=>void;plain?:boolean}){
  const labelId=useId(),latest=useRef(value),changed=useRef(onChange),position=useRef({from:0,to:0}),[picking,setPicking]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(""),[,render]=useState(0)
@@ -26,7 +28,7 @@ export default function RichEditor({label,value,onChange,plain=false}:{label:str
  if(!editor)return null
  const act=(name:string,icon:React.ReactNode,run:()=>void,active=false,disabled=false)=><Button key={name} type="button" variant="ghost" size="icon" aria-label={name} title={name} aria-pressed={active} disabled={disabled} onMouseDown={e=>e.preventDefault()} onClick={run}>{icon}</Button>
  function chooseImages(){position.current={from:editor!.state.selection.from,to:editor!.state.selection.to};setPicking(true)}
- async function insert(ids:string[]){setBusy(true);try{const images=await Promise.all(ids.map(id=>api<Media>(`/media/${id}`)));editor!.chain().focus().insertContentAt(position.current,images.flatMap(image=>[{type:"gcfFigure",attrs:{mediaId:image.id,alt:image.alt},content:image.caption?[{type:"text",text:image.caption}]:[]},{type:"paragraph"}])).run();setPicking(false);setError("")}catch{setError("Could not open the selected images.")}finally{setBusy(false)}}
+ async function insert(ids:string[]){setBusy(true);try{const images=await Promise.all(ids.map(id=>api<Media>(`/media/${id}`)));editor!.chain().focus().insertContentAt(position.current,images.flatMap(image=>[{type:"gcfFigure",attrs:{mediaId:image.id,alt:image.alt,widthPercent:100},content:image.caption?[{type:"text",text:image.caption}]:[]},{type:"paragraph"}])).run();setPicking(false);setError("")}catch{setError("Could not open the selected images.")}finally{setBusy(false)}}
  const inFigure=editor.isActive("gcfFigure")
  return <section className="rich-field"><span id={labelId} className="rich-label">{label}</span>{!plain&&<div className="rich-toolbar" role="toolbar" aria-label={`${label} formatting`}>
  {act("Heading",<Heading2 size={16}/>,()=>editor.chain().focus().toggleHeading({level:2}).run(),editor.isActive("heading"))}

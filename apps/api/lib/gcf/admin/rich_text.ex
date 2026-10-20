@@ -112,7 +112,9 @@ defmodule Gcf.Admin.RichText do
   defp valid_attrs?("gcfFigure", attrs),
     do:
       is_binary(attrs["mediaId"]) and Regex.match?(~r/^[a-f0-9]{32}$/, attrs["mediaId"]) and
-        is_binary(attrs["alt"] || "") and String.length(attrs["alt"] || "") <= 1000
+        is_binary(attrs["alt"] || "") and String.length(attrs["alt"] || "") <= 1000 and
+        (attrs["widthPercent"] == nil or
+           (is_integer(attrs["widthPercent"]) and attrs["widthPercent"] in 1..100))
 
   defp valid_attrs?("heading", attrs), do: attrs["level"] in [2, 3] and valid_align?(attrs)
   defp valid_attrs?("paragraph", attrs), do: valid_align?(attrs)

@@ -52,4 +52,20 @@ defmodule Gcf.RichTextTest do
 
     refute RichText.valid?("gcf-richtext:{", 100)
   end
+
+  test "figure widths are bounded whole percentages and old figures still work" do
+    figure = %{
+      type: "gcfFigure",
+      attrs: %{mediaId: String.duplicate("a", 32), alt: ""},
+      content: []
+    }
+
+    assert RichText.valid?(doc([figure]), 100)
+
+    for width <- [1, 40, 100],
+        do: assert(RichText.valid?(doc([put_in(figure, [:attrs, :widthPercent], width)]), 100))
+
+    for width <- [0, 101, -1, 40.5, "40"],
+        do: refute(RichText.valid?(doc([put_in(figure, [:attrs, :widthPercent], width)]), 100))
+  end
 end
