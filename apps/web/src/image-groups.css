@@ -3,3 +3,7 @@
 .output-panel>.collection-viewer{flex:1;min-height:0;height:auto}
 
 .collection-preview-cover{padding:20px}.collection-preview-cover>h2{font-size:16px;margin-bottom:15px}.collection-preview-cover>img{display:block;max-width:100%;max-height:55vh;object-fit:contain;margin:auto}.collection-preview-cover+button{align-self:flex-start;margin:0 20px 20px}
+/* Collections and date controls share the existing single scrolling toolbar row. */
+.workspace-header .header-tools:has(.gallery-timeline){display:flex;align-items:center;gap:8px;min-width:800px}
+.workspace-header .header-tools:has(.gallery-timeline)>button{flex:none;white-space:nowrap}
+.workspace-header .gallery-timeline{flex:1;min-width:520px}
