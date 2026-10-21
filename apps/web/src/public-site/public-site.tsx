@@ -75,7 +75,7 @@ function StoryPage({ story, initiallyOpen = false }: { story: Story; initiallyOp
 function Leadership() {
  return <section className="gcf-leadership" aria-labelledby="gcf-leader-name">
   <header><span className="gcf-eyebrow">Meet our chairman</span><h2 id="gcf-leader-name">Warner<br/><em>Bernard.</em></h2><p className="gcf-leader-role">Chairman of the Board</p><p>Warner Bernard chairs the Greater Change Foundation, helping bring people and partners together in support of children across Jamaica.</p><p>His work with the foundation includes building partnerships that support education and create opportunities for children and their communities.</p></header>
-  <figure className="gcf-leader-photo"><img src="/assets/people/warner-bernard.png" width="280" height="346" alt="Warner Bernard" loading="lazy" decoding="async"/></figure>
+  <figure className="gcf-leader-photo"><Picture photo={{file: 'christmas-delivery', alt: 'Warner Bernard during GCF’s Christmas initiative, 2022.', caption: ''}}/></figure>
   <aside className="gcf-leader-statement" aria-labelledby="gcf-statement-label"><span id="gcf-statement-label" className="gcf-eyebrow">A note from Warner · coming soon</span><p className="gcf-statement-placeholder">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p><footer><p className="gcf-signature">Warner Bernard</p><small>Placeholder text · awaiting Warner’s own words</small></footer></aside>
  </section>
 }

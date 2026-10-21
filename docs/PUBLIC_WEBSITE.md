@@ -63,10 +63,11 @@ post describing the ICWI partnership identifies him as Board Chair). This is the
 Jamaican organisation, not the unrelated UK charity with a similar name. Avoid
 adding a founder title, career history, dates or impact claims without a primary source.
 
-The temporary portrait is the image supplied and identified by the site owner on
-20 October 2026 (`Screenshot 2026-10-20 at 3.46.22 PM.png`, copied unchanged to
-`/assets/people/warner-bernard.png`). No other face in the library has been identified
-by visual comparison. Replace it when the owner identifies a source filename.
+The portrait uses the owner's selected option 1 from the supplied photo shortlist:
+`christmas-2022/IMG_0830.jpg`, already published as `christmas-delivery.webp`.
+The owner identified and selected this photograph on 21 October 2026. It replaces
+the temporary screenshot. The existing responsive image sizes are reused; a CSS
+portrait crop keeps the central subject in view without modifying the original.
 
 The Latin statement is deliberately labelled placeholder copy awaiting Warner's
 own words. It is not an attributed quote. His name below uses the self-hosted
